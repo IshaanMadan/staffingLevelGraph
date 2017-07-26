@@ -1,0 +1,138 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Phaser - Making your first game, part 9</title>
+    <script src="//cdn.jsdelivr.net/phaser/2.6.2/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+        canvas, iframe{
+            position: absolute;
+            top:0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin:auto;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(800, 400, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
+
+var shiftData = {
+    "shiftScale": 1,
+    "availableLevels": {
+        "0 - 1" : 5,
+        "1 - 2" : 1,
+        "2 - 3" : 2,
+        "3 - 4" : 7,
+        "4 - 5" : 12,
+        "5 - 6" : 2,
+        "6 - 7" : 5,
+        "7 - 8" : 9,
+        "8 - 9" : 10,
+        "9 - 10" : 6,
+        "11 - 12" : 5,
+        "12 - 13" : 1,
+        "13 - 14" : 1,
+        "14 - 15" : 3,
+        "15 - 16" : 6,
+        "16 - 17" : 7,
+        "17 - 18" : 6,
+        "18 - 19" : 5,
+        "19 - 20" : 5,
+        "20 - 21" : 2,
+        "21 - 22" : 8,
+        "22 - 23" : 9,
+        "23 - 24" : 6,
+    }
+}
+
+var handlerStartYCoordinate, handlerPositionId, dragDistance;
+var barHeight;
+var bar = [];
+var handler = [];
+
+function preload() {
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('handle', 'assets/sky.png');
+    game.load.image('node', 'assets/circle_blue.png');
+}
+
+function create() {
+    game.stage.backgroundColor = '#dbe8c1';
+    counter = 1;
+
+    // loop to iterate over staff levels for each hour 
+    for (var eachHour in shiftData.availableLevels) {
+        if (shiftData.availableLevels.hasOwnProperty(eachHour)) {
+            createHourBar(shiftData.availableLevels[eachHour], counter);
+            counter++;
+        }
+    }
+}
+
+function createHourBar( hourlyLevel, counter ){
+
+    // creating a bar sprite and positioning it according to available staff levels
+    bar[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'sky');
+    bar[counter].height = hourlyLevel*10;
+    bar[counter].width = 30;
+    bar[counter].barName = "Bar-" + counter;
+
+    
+    // creating and aligning the handler to the bar sprite
+    handler[counter] = game.add.sprite(counter*30 + 15, 250 - hourlyLevel*10, 'node');
+    handler[counter].handlerPositionId = counter;
+    handler[counter].anchor.set(0.5);
+    //handler[counter].height = 3;
+    //handler[counter].width = 30;
+    handler[counter].scale.setTo(0.05);
+    handler[counter].inputEnabled = true;
+    handler[counter].input.allowHorizontalDrag = false;
+    handler[counter].input.enableDrag(false, true);
+    handler[counter].input.useHandCursor = true;
+    
+    // attaching events to the handler
+    handler[counter].events.onDragStart.add(handlerDragStart);
+    handler[counter].events.onDragUpdate.add(handlerDragUpdate);
+    handler[counter].events.onDragStop.add(handlerDragStop);
+
+}
+function update() {
+
+}
+
+function render() {
+
+}
+
+function handlerDragStart(handler, pointer, x, y) {
+    
+    handlerStartYCoordinate = y;
+    barHeight =  bar[handlerPositionId].height;
+    //console.log("barHeight" + barHeight);
+}
+function handlerDragStop(handler, pointer) {
+
+}
+
+function handlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+    handlerPositionId = handler.handlerPositionId;
+    //console.log("handlerPositionId", handlerPositionId);
+    dragDistance = handlerStartYCoordinate - handler.y;
+    //console.log("dragDistance", dragDistance);
+    if(!isNaN(dragDistance)){
+        bar[handlerPositionId].height = barHeight + dragDistance;
+        bar[handlerPositionId].y = handler.y;
+    }
+}
+</script>
+
+</body>
+</html>
