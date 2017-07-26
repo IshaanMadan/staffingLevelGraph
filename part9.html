@@ -58,7 +58,7 @@ var shiftData = {
         "3 - 4" : 5,
         "4 - 5" : 7,
         "5 - 6" : 12,
-        "6 - 7" : 12,
+        "6 - 7" : 10,
         "7 - 8" : 3,
         "8 - 9" : 4,
         "9 - 10" : 6,
@@ -96,7 +96,7 @@ function preload() {
 function create() {
     game.stage.backgroundColor = '#dbe8c1';
 
-    text = game.add.text(325, 50, "- Make required bars on top -", {fontSize : "14px", backgroundColor: "#000000", fill: "#ffffff"});
+    text = game.add.text(300, 50, "- Make required bars on top -", {fontSize : "14px", backgroundColor: "#000000", fill: "#ffffff"});
     text.anchor.setTo(0.5, 0.5);
     text.inputEnabled = true;
     text.events.onInputDown.add(reqBarsToTop, this);
