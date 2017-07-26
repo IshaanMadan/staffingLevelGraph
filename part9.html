@@ -2,7 +2,7 @@
 <html lang="en"> 
 <head> 
 	<meta charset="UTF-8" />
-    <title>Phaser - Making your first game, part 9</title>
+    <title>Phaser - Staffing Level Graph</title>
     <script src="//cdn.jsdelivr.net/phaser/2.6.2/phaser.min.js"></script>
     <style type="text/css">
         body {
@@ -50,60 +50,219 @@ var shiftData = {
         "21 - 22" : 8,
         "22 - 23" : 9,
         "23 - 24" : 6,
-    }
+    },
+    "requiredLevels": {
+        "0 - 1" : 6,
+        "1 - 2" : 2,
+        "2 - 3" : 1,
+        "3 - 4" : 5,
+        "4 - 5" : 7,
+        "5 - 6" : 12,
+        "6 - 7" : 12,
+        "7 - 8" : 3,
+        "8 - 9" : 4,
+        "9 - 10" : 6,
+        "11 - 12" : 5,
+        "12 - 13" : 2,
+        "13 - 14" : 2,
+        "14 - 15" : 7,
+        "15 - 16" : 4,
+        "16 - 17" : 8,
+        "17 - 18" : 1,
+        "18 - 19" : 9,
+        "19 - 20" : 8,
+        "20 - 21" : 4,
+        "21 - 22" : 4,
+        "22 - 23" : 5,
+        "23 - 24" : 11,
+    }    
 }
 
-var handlerStartYCoordinate, handlerPositionId, dragDistance;
-var barHeight;
-var bar = [];
-var handler = [];
+var availHandlerStartYCoordinate, reqHandlerStartYCoordinate, availHandlerId, reqHandlerId, availDragDist, reqDragDist;
+var availableBarHeight, requiredBarHeight;
+var availableBar = [];
+var requiredBar = [];
+var availBarHandler = [];
+var reqBarHandler = [];
+var availStaffLevelGroup, reqStaffLevelGroup;
 
 function preload() {
     game.load.image('sky', 'assets/sky.png');
+    game.load.image('platform', 'assets/platform.png');
     game.load.image('handle', 'assets/sky.png');
     game.load.image('node', 'assets/circle_blue.png');
 }
 
 function create() {
     game.stage.backgroundColor = '#dbe8c1';
-    counter = 1;
 
-    // loop to iterate over staff levels for each hour 
+    text = game.add.text(325, 50, "- Make required bars on top -", {fontSize : "14px", backgroundColor: "#000000", fill: "#ffffff"});
+    text.anchor.setTo(0.5, 0.5);
+    text.inputEnabled = true;
+    text.events.onInputDown.add(reqBarsToTop, this);
+
+    text1 = game.add.text(text.x + text.width + 20, 50, "- Make available bars on top -", {fontSize : "14px", backgroundColor: "#000000", fill: "#ffffff"});
+    text1.anchor.setTo(0.5, 0.5);
+    text1.inputEnabled = true;
+    text1.events.onInputDown.add(availBarsToTop, this);
+
+    availLegendText = game.add.text(30, 300, "- Blue: Available Staff Levels", {fontSize : "14px"});
+    availLegendText.addColor('#4ba8d8', 1);
+    availLegendText.addColor('#000000', 6);
+
+    reqLegendText = game.add.text(30, 320, "- Green: Required Staff Levels", {fontSize : "14px"});
+    reqLegendText.addColor('#21572f', 1);
+    reqLegendText.addColor('#000000', 7);
+
+    counter = 1;
+    availStaffLevelGroup = game.add.group();
+
+    // loop to iterate over available staff levels for each hour 
     for (var eachHour in shiftData.availableLevels) {
         if (shiftData.availableLevels.hasOwnProperty(eachHour)) {
-            createHourBar(shiftData.availableLevels[eachHour], counter);
+            createAvailableHourBar(shiftData.availableLevels[eachHour], counter);
             counter++;
         }
     }
+
+    counter = 1;
+    reqStaffLevelGroup = game.add.group();
+    // loop to iterate over required staff levels for each hour 
+    for (var eachHour in shiftData.requiredLevels) {
+        if (shiftData.requiredLevels.hasOwnProperty(eachHour)) {
+            createRequiredHourBar(shiftData.requiredLevels[eachHour], counter);
+            counter++;
+        }
+    }    
+   
 }
 
-function createHourBar( hourlyLevel, counter ){
+function reqBarsToTop() {
+
+    game.world.bringToTop(reqStaffLevelGroup);
+    // hiding the handlers of other group
+    for (var i in reqBarHandler) {
+        availBarHandler[i].visible = false;
+        reqBarHandler[i].visible = true;
+    }
+
+}
+function availBarsToTop() {
+
+    game.world.bringToTop(availStaffLevelGroup);
+    // hiding the handlers of other group
+    for (var i in availBarHandler) {
+        reqBarHandler[i].visible = false;
+        availBarHandler[i].visible = true;
+    }
+    
+    
+
+}
+function createAvailableHourBar( hourlyLevel, counter ){
 
     // creating a bar sprite and positioning it according to available staff levels
-    bar[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'sky');
-    bar[counter].height = hourlyLevel*10;
-    bar[counter].width = 30;
-    bar[counter].barName = "Bar-" + counter;
+    availableBar[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'sky');
+    availableBar[counter].height = hourlyLevel*10;
+    availableBar[counter].width = 30;
+    availableBar[counter].inputEnabled = true;
+    availableBar[counter].barName = "Bar-" + counter;
 
     
-    // creating and aligning the handler to the bar sprite
-    handler[counter] = game.add.sprite(counter*30 + 15, 250 - hourlyLevel*10, 'node');
-    handler[counter].handlerPositionId = counter;
-    handler[counter].anchor.set(0.5);
-    //handler[counter].height = 3;
-    //handler[counter].width = 30;
-    handler[counter].scale.setTo(0.05);
-    handler[counter].inputEnabled = true;
-    handler[counter].input.allowHorizontalDrag = false;
-    handler[counter].input.enableDrag(false, true);
-    handler[counter].input.useHandCursor = true;
+    // creating and aligning the handler to the available bar sprite
+    availBarHandler[counter] = game.add.sprite(counter*30 + 15, 250 - hourlyLevel*10, 'node');
+    availBarHandler[counter].availHandlerId = counter;
+    availBarHandler[counter].anchor.set(0.5);
+    availBarHandler[counter].scale.setTo(0.05);
+    availBarHandler[counter].inputEnabled = true;
+    availBarHandler[counter].input.allowHorizontalDrag = false;
+    availBarHandler[counter].input.enableDrag(false, true);
+    availBarHandler[counter].input.useHandCursor = true;
+    availBarHandler[counter].visible = false;
     
     // attaching events to the handler
-    handler[counter].events.onDragStart.add(handlerDragStart);
-    handler[counter].events.onDragUpdate.add(handlerDragUpdate);
-    handler[counter].events.onDragStop.add(handlerDragStop);
+    availBarHandler[counter].events.onDragStart.add(availHandlerDragStart);
+    availBarHandler[counter].events.onDragUpdate.add(availHandlerDragUpdate);
+    availBarHandler[counter].events.onDragStop.add(availHandlerDragStop);
+
+    availStaffLevelGroup.add(availableBar[counter]);
+    availStaffLevelGroup.add(availBarHandler[counter]);
 
 }
+
+function createRequiredHourBar( hourlyLevel, counter ){
+
+    // creating a bar sprite and positioning it according to required staff levels
+    requiredBar[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'platform');
+    requiredBar[counter].height = hourlyLevel*10;
+    requiredBar[counter].width = 30;
+    requiredBar[counter].inputEnabled = true;
+    requiredBar[counter].barName = "Bar-" + counter;
+
+    
+    // creating and aligning the handler to the require bar sprite
+    reqBarHandler[counter] = game.add.sprite(counter*30 + 15, 250 - hourlyLevel*10, 'node');
+    reqBarHandler[counter].reqHandlerId = counter;
+    reqBarHandler[counter].anchor.set(0.5);
+    reqBarHandler[counter].scale.setTo(0.05);
+    reqBarHandler[counter].inputEnabled = true;
+    reqBarHandler[counter].input.allowHorizontalDrag = false;
+    reqBarHandler[counter].input.enableDrag(false, true);
+    reqBarHandler[counter].input.useHandCursor = true;
+    
+    // attaching events to the handler
+    reqBarHandler[counter].events.onDragStart.add(reqHandlerDragStart);
+    reqBarHandler[counter].events.onDragUpdate.add(reqHandlerDragUpdate);
+    reqBarHandler[counter].events.onDragStop.add(reqHandlerDragStop);
+
+    reqStaffLevelGroup.add(requiredBar[counter]);
+    reqStaffLevelGroup.add(reqBarHandler[counter]);
+
+}
+
+function availHandlerDragStart(handler, pointer, x, y) {
+    
+    availHandlerStartYCoordinate = y;
+    availableBarHeight =  availableBar[availHandlerId].height;
+    //console.log("availableBarHeight" + availableBarHeight);
+}
+
+function reqHandlerDragStart(handler, pointer, x, y) {
+    
+    reqHandlerStartYCoordinate = y;
+    requiredBarHeight =  requiredBar[reqHandlerId].height;
+}
+
+function availHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+    availHandlerId = handler.availHandlerId;
+    //console.log("availHandlerId", availHandlerId);
+    availDragDist = availHandlerStartYCoordinate - handler.y;
+    //console.log("availDragDist", availDragDist);
+    if(!isNaN(availDragDist)){
+        availableBar[availHandlerId].height = availableBarHeight + availDragDist;
+        availableBar[availHandlerId].y = handler.y;
+    }
+}
+
+function reqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+    reqHandlerId = handler.reqHandlerId;
+    //console.log("reqHandlerId", reqHandlerId);
+    reqDragDist = reqHandlerStartYCoordinate - handler.y;
+    //console.log("reqDragDist", reqDragDist);
+    if(!isNaN(reqDragDist)){
+        requiredBar[reqHandlerId].height = requiredBarHeight + reqDragDist;
+        requiredBar[reqHandlerId].y = handler.y;
+    }
+}
+
+function availHandlerDragStop(handler, pointer) {
+
+}
+
+function reqHandlerDragStop(handler, pointer) {
+
+}
+
 function update() {
 
 }
@@ -112,26 +271,6 @@ function render() {
 
 }
 
-function handlerDragStart(handler, pointer, x, y) {
-    
-    handlerStartYCoordinate = y;
-    barHeight =  bar[handlerPositionId].height;
-    //console.log("barHeight" + barHeight);
-}
-function handlerDragStop(handler, pointer) {
-
-}
-
-function handlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
-    handlerPositionId = handler.handlerPositionId;
-    //console.log("handlerPositionId", handlerPositionId);
-    dragDistance = handlerStartYCoordinate - handler.y;
-    //console.log("dragDistance", dragDistance);
-    if(!isNaN(dragDistance)){
-        bar[handlerPositionId].height = barHeight + dragDistance;
-        bar[handlerPositionId].y = handler.y;
-    }
-}
 </script>
 
 </body>
