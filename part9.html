@@ -79,7 +79,7 @@ var shiftData = {
 }
 
 var availHandlerStartYCoordinate, reqHandlerStartYCoordinate, availHandlerId, reqHandlerId, availDragDist, reqDragDist;
-var availableBarHeight, requiredBarHeight;
+var availableBarHeight, requiredBarHeight, bounds;
 var availableBar = [];
 var requiredBar = [];
 var availBarHandler = [];
@@ -95,6 +95,8 @@ function preload() {
 
 function create() {
     game.stage.backgroundColor = '#dbe8c1';
+
+    positiveBounds = new Phaser.Rectangle(30, 100, 690, 150); 
 
     text = game.add.text(300, 50, "- Make required bars on top -", {fontSize : "14px", backgroundColor: "#000000", fill: "#ffffff"});
     text.anchor.setTo(0.5, 0.5);
@@ -112,7 +114,7 @@ function create() {
 
     reqLegendText = game.add.text(30, 320, "- Green: Required Staff Levels", {fontSize : "14px"});
     reqLegendText.addColor('#21572f', 1);
-    reqLegendText.addColor('#000000', 7);
+    reqLegendText.addColor('#000000', 7); 
 
     counter = 1;
     availStaffLevelGroup = game.add.group();
@@ -133,7 +135,8 @@ function create() {
             createRequiredHourBar(shiftData.requiredLevels[eachHour], counter);
             counter++;
         }
-    }    
+    }
+  
    
 }
 
@@ -180,6 +183,7 @@ function createAvailableHourBar( hourlyLevel, counter ){
     availBarHandler[counter].input.enableDrag(false, true);
     availBarHandler[counter].input.useHandCursor = true;
     availBarHandler[counter].visible = false;
+    availBarHandler[counter].input.boundsRect = positiveBounds;
     
     // attaching events to the handler
     availBarHandler[counter].events.onDragStart.add(availHandlerDragStart);
@@ -211,6 +215,7 @@ function createRequiredHourBar( hourlyLevel, counter ){
     reqBarHandler[counter].input.allowHorizontalDrag = false;
     reqBarHandler[counter].input.enableDrag(false, true);
     reqBarHandler[counter].input.useHandCursor = true;
+    reqBarHandler[counter].input.boundsRect = positiveBounds;
     
     // attaching events to the handler
     reqBarHandler[counter].events.onDragStart.add(reqHandlerDragStart);
