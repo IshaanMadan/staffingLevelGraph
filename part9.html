@@ -53,8 +53,8 @@ var shiftData = {
     },
     "requiredLevels": {
         "0 - 1" : 6,
-        "1 - 2" : 2,
-        "2 - 3" : 1,
+        "1 - 2" : 12,
+        "2 - 3" : 3,
         "3 - 4" : 5,
         "4 - 5" : 7,
         "5 - 6" : 12,
@@ -96,7 +96,7 @@ function preload() {
 function create() {
     game.stage.backgroundColor = '#dbe8c1';
 
-    positiveBounds = new Phaser.Rectangle(30, 100, 690, 150); 
+    positiveBounds = new Phaser.Rectangle(30, 70, 690, 180); 
 
     text = game.add.text(300, 50, "- Make required bars on top -", {fontSize : "14px", backgroundColor: "#000000", fill: "#ffffff"});
     text.anchor.setTo(0.5, 0.5);
@@ -244,10 +244,10 @@ function availHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
     availHandlerId = handler.availHandlerId;
     //console.log("availHandlerId", availHandlerId);
     availDragDist = availHandlerStartYCoordinate - handler.y;
-    //console.log("availDragDist", availDragDist);
+    //console.log("handler.y", handler.y);
     if(!isNaN(availDragDist)){
-        availableBar[availHandlerId].height = availableBarHeight + availDragDist;
-        availableBar[availHandlerId].y = handler.y;
+        availableBar[availHandlerId].height = availableBarHeight + Math.floor(availDragDist / 10) * 10;
+        availableBar[availHandlerId].y = (Math.ceil(handler.y / 10) * 10);   
     }
 }
 
@@ -257,16 +257,24 @@ function reqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
     reqDragDist = reqHandlerStartYCoordinate - handler.y;
     //console.log("reqDragDist", reqDragDist);
     if(!isNaN(reqDragDist)){
-        requiredBar[reqHandlerId].height = requiredBarHeight + reqDragDist;
-        requiredBar[reqHandlerId].y = handler.y;
+        requiredBar[reqHandlerId].height = requiredBarHeight + Math.floor(reqDragDist / 10) * 10;
+        requiredBar[reqHandlerId].y = (Math.ceil(handler.y / 10) * 10);        
     }
 }
 
 function availHandlerDragStop(handler, pointer) {
 
+    //console.log("availDragDist", availDragDist);
+    if(handler.y !== availableBar[availHandlerId].y){
+       handler.y = availableBar[availHandlerId].y;
+    }        
 }
 
 function reqHandlerDragStop(handler, pointer) {
+
+    if(handler.y !== requiredBar[reqHandlerId].y){
+        handler.y = requiredBar[reqHandlerId].y;
+    }
 
 }
 
