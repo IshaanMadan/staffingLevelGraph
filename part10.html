@@ -107,18 +107,14 @@ var shiftData = {
 }
 var hourScale = 30;
 var yAxisRef = 205;
-
-var minReqPolyCoordinates = [];
-var maxReqPolyCoordinates = [];
-var availPolyCoordinates = [];
+var minReqPolyCoordinates = [{x:30, y:yAxisRef}];
+var maxReqPolyCoordinates = [{x:30, y:yAxisRef}];
+var availPolyCoordinates = [{x:30, y:yAxisRef}];
 var underStaffPolygon = [];
 var overStaffPolygon = [];
 var xScaleText = [];
 var yScaleTextPositive = [];
 var yScaleTextNegative = [];
-minReqPolyCoordinates.push({x:30, y:yAxisRef});
-maxReqPolyCoordinates.push({x:30, y:yAxisRef});
-availPolyCoordinates.push({x:30, y:yAxisRef});
 var minReqPolyCounter = 1;
 var availPolyCounter = 1;
 var maxReqPolyCounter = 1;
@@ -243,6 +239,22 @@ function create() {
     graphics1.drawPolygon(minReqPoly.points);
     graphics1.endFill();  
 
+    indicateConflictAreas();
+    createScale();
+    createLegends();   
+}
+
+
+function update() {
+
+}
+
+function render() {
+    //game.debug.geom(xAxis);
+    //game.debug.geom(yAxis);
+}
+function indicateConflictAreas(){
+
     var loopCounter = 1;
     for (var eachHour in shiftData.availableLevels) {
         if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
@@ -296,21 +308,9 @@ function create() {
         }        
                         
             loopCounter++;
-    }      
-
-    createScale();
-    createLegends();   
+    } 
 }
 
-
-function update() {
-
-}
-
-function render() {
-    //game.debug.geom(xAxis);
-    //game.debug.geom(yAxis);
-}
 function createScale() {
     xAxis = new Phaser.Line(0, yAxisRef + 1, 800, yAxisRef + 1);
     yAxis = new Phaser.Line(30, 00, 30, 800);
