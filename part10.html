@@ -22,7 +22,7 @@
 
 <script type="text/javascript">
 
-var game = new Phaser.Game(800, 400, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
+var game = new Phaser.Game(800, 405, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
 
 var shiftData = {
     "shiftScale": 1,
@@ -37,6 +37,7 @@ var shiftData = {
         "7 - 8" : 7,
         "8 - 9" : 7,
         "9 - 10" : 7,
+        "10 - 11" : 6,
         "11 - 12" : 4,
         "12 - 13" : 4,
         "13 - 14" : 8,
@@ -62,6 +63,7 @@ var shiftData = {
         "7 - 8" : 5,
         "8 - 9" : 6,
         "9 - 10" : 6,
+        "10 - 11" : 4,
         "11 - 12" : 6,
         "12 - 13" : 6,
         "13 - 14" : 10,
@@ -87,6 +89,7 @@ var shiftData = {
         "7 - 8" : 10,
         "8 - 9" : 10,
         "9 - 10" : 8,
+        "10 - 11" : 12,
         "11 - 12" : 9,
         "12 - 13" : 11,
         "13 - 14" : 11,
@@ -108,6 +111,9 @@ var maxReqPolyCoordinates = [];
 var availPolyCoordinates = [];
 var underStaffPolygon = [];
 var overStaffPolygon = [];
+var xScaleText = [];
+var yScaleTextPositive = [];
+var yScaleTextNegative = [];
 minReqPolyCoordinates.push({x:30, y:250});
 maxReqPolyCoordinates.push({x:30, y:250});
 availPolyCoordinates.push({x:30, y:250});
@@ -125,9 +131,6 @@ function preload() {
 
 function create() {
     game.stage.backgroundColor = '#f8f4f4';
-    line = new Phaser.Line(00, 250, 800, 250);
-
-
     var loopCounter = 1;
     for (var eachHour in shiftData.availableLevels) {
         if (shiftData.availableLevels.hasOwnProperty(eachHour)) {
@@ -291,7 +294,7 @@ function create() {
             loopCounter++;
     }      
 
-   
+    createScale();   
 }
 
 
@@ -300,7 +303,46 @@ function update() {
 }
 
 function render() {
-    game.debug.geom(line);
+    //game.debug.geom(xAxis);
+    //game.debug.geom(yAxis);
+}
+function createScale() {
+    xAxis = new Phaser.Line(0, 251, 800, 251);
+    yAxis = new Phaser.Line(30, 00, 30, 800);
+    var xAxisGraphics=game.add.graphics(0,0);
+    xAxisGraphics.lineStyle(2, 0xb1b1b1);
+    xAxisGraphics.moveTo(xAxis.start.x,xAxis.start.y);//moving position of graphic if you draw mulitple lines    
+    xAxisGraphics.lineTo(xAxis.end.x,xAxis.end.y);
+    xAxisGraphics.endFill();
+    var yAxisGraphics=game.add.graphics(0,0);
+    yAxisGraphics.lineStyle(2, 0xb1b1b1);
+    yAxisGraphics.moveTo(yAxis.start.x,yAxis.start.y);//moving position of graphic if you draw mulitple lines    
+    yAxisGraphics.lineTo(yAxis.end.x,yAxis.end.y);
+    yAxisGraphics.endFill();
+    var loopCounter = 1;
+    while(loopCounter <=25){
+        if(loopCounter == 1){
+            loopCounter++;
+            continue;
+        }
+        xScaleText[loopCounter] = game.add.text(hourScale * loopCounter, 265, loopCounter-1, {fontSize : "12px"});
+        xScaleText[loopCounter].anchor.setTo(0.5, 0.5);
+        xScaleText[loopCounter].addColor('#b1b1b1');
+
+        if((loopCounter-1) % 3 ==0){
+            yScaleTextPositive[loopCounter] = game.add.text(hourScale-10, 250 - ((loopCounter-1)*10), loopCounter-1, {fontSize : "12px"});
+            yScaleTextPositive[loopCounter].anchor.setTo(0.5, 0.5);
+            yScaleTextPositive[loopCounter].addColor('#b1b1b1');
+
+            yScaleTextNegative[loopCounter] = game.add.text(hourScale-10, 250 + ((loopCounter-1)*10), -(loopCounter-1), {fontSize : "12px"});
+            yScaleTextNegative[loopCounter].anchor.setTo(0.5, 0.5);
+            yScaleTextNegative[loopCounter].addColor('#b1b1b1');             
+        }       
+
+
+        loopCounter++;
+    }
+
 }
 
 
