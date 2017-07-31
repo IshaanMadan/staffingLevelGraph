@@ -130,7 +130,7 @@ function preload() {
 }
 
 function create() {
-    game.stage.backgroundColor = '#f8f4f4';
+    game.stage.backgroundColor = '#ffffff';
     var loopCounter = 1;
     for (var eachHour in shiftData.availableLevels) {
         if (shiftData.availableLevels.hasOwnProperty(eachHour)) {
@@ -263,6 +263,7 @@ function create() {
                 //graphics.lineStyle(2, 0xcacacb);
                 graphics.beginFill(0X9c1003);
                 graphics.drawPolygon(underStaffPolygon[loopCounter].points);
+                //graphics.alpha = 0.5;
                 graphics.endFill(); 
             }
               
@@ -286,6 +287,7 @@ function create() {
                 //graphics.lineStyle(2, 0xcacacb);
                 graphics.beginFill(0xe3da7d);
                 graphics.drawPolygon(overStaffPolygon[loopCounter].points);
+                //graphics.alpha = 0.4;
                 graphics.endFill(); 
             }
               
