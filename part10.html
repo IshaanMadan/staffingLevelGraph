@@ -298,7 +298,8 @@ function create() {
             loopCounter++;
     }      
 
-    createScale();   
+    createScale();
+    createLegends();   
 }
 
 
@@ -347,6 +348,28 @@ function createScale() {
         loopCounter++;
     }
 
+}
+
+function createLegends(){
+    availLegendText = game.add.text(60, yAxisRef + 100, "Grey: Available Staff Levels", {fontSize : "12px"});
+    availLegendText.addColor('#bababd', 0);
+    availLegendText.addColor('#000000', 6);
+
+    minReqLegendText = game.add.text(60, yAxisRef + 120, "Green: Min Required Staff Levels", {fontSize : "12px"});
+    minReqLegendText.addColor('#21572f', 0);
+    minReqLegendText.addColor('#000000', 7);
+
+    maxReqLegendText = game.add.text(60, yAxisRef + 140, "Magenta: Max Required Staff Levels", {fontSize : "12px"});
+    maxReqLegendText.addColor('#f296b0', 0);
+    maxReqLegendText.addColor('#000000', 9);    
+
+    overStaffingText = game.add.text(60, yAxisRef + 160, "Yellow: OverStaffed Area", {fontSize : "12px"});
+    overStaffingText.addColor('#e0d66c', 0);
+    overStaffingText.addColor('#000000', 8);     
+
+    underStaffingText = game.add.text(60, yAxisRef + 180, "Brown: UnderStaffed Area", {fontSize : "12px"});
+    underStaffingText.addColor('#9c1003', 0);
+    underStaffingText.addColor('#000000', 7);         
 }
 
 
