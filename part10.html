@@ -1,0 +1,310 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Phaser - Staffing Level Graph</title>
+    <script src="//cdn.jsdelivr.net/phaser/2.6.2/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+        canvas, iframe{
+            position: absolute;
+            top:0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin:auto;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(800, 400, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
+
+var shiftData = {
+    "shiftScale": 1,
+    "availableLevels": {
+        "0 - 1" : 8,
+        "1 - 2" : 3,
+        "2 - 3" : 7,
+        "3 - 4" : 10,
+        "4 - 5" : 9,
+        "5 - 6" : 9,
+        "6 - 7" : 9,
+        "7 - 8" : 7,
+        "8 - 9" : 7,
+        "9 - 10" : 7,
+        "11 - 12" : 4,
+        "12 - 13" : 4,
+        "13 - 14" : 8,
+        "14 - 15" : 11,
+        "15 - 16" : 15,
+        "16 - 17" : 15,
+        "17 - 18" : 15,
+        "18 - 19" : 10,
+        "19 - 20" : 10,
+        "20 - 21" : 13,
+        "21 - 22" : 2,
+        "22 - 23" : 2,
+        "23 - 24" : 13,
+    },
+    "minRequiredLevels": {
+        "0 - 1" : 6,
+        "1 - 2" : 10,
+        "2 - 3" : 8,
+        "3 - 4" : 9,
+        "4 - 5" : 8,
+        "5 - 6" : 8,
+        "6 - 7" : 8,
+        "7 - 8" : 5,
+        "8 - 9" : 6,
+        "9 - 10" : 6,
+        "11 - 12" : 6,
+        "12 - 13" : 6,
+        "13 - 14" : 10,
+        "14 - 15" : 10,
+        "15 - 16" : 10,
+        "16 - 17" : 10,
+        "17 - 18" : 7,
+        "18 - 19" : 8,
+        "19 - 20" : 8,
+        "20 - 21" : 12,
+        "21 - 22" : 8,
+        "22 - 23" : 9,
+        "23 - 24" : 11,
+    },
+    "maxRequiredLevels": {
+        "0 - 1" : 8,
+        "1 - 2" : 11,
+        "2 - 3" : 12,
+        "3 - 4" : 13,
+        "4 - 5" : 13,
+        "5 - 6" : 13,
+        "6 - 7" : 10,
+        "7 - 8" : 10,
+        "8 - 9" : 10,
+        "9 - 10" : 8,
+        "11 - 12" : 9,
+        "12 - 13" : 11,
+        "13 - 14" : 11,
+        "14 - 15" : 11,
+        "15 - 16" : 12,
+        "16 - 17" : 12,
+        "17 - 18" : 12,
+        "18 - 19" : 11,
+        "19 - 20" : 11,
+        "20 - 21" : 14,
+        "21 - 22" : 10,
+        "22 - 23" : 11,
+        "23 - 24" : 11,
+    }            
+}
+var hourScale = 30;
+var minReqPolyCoordinates = [];
+var maxReqPolyCoordinates = [];
+var availPolyCoordinates = [];
+var underStaffPolygon = [];
+var overStaffPolygon = [];
+minReqPolyCoordinates.push({x:30, y:250});
+maxReqPolyCoordinates.push({x:30, y:250});
+availPolyCoordinates.push({x:30, y:250});
+var minReqPolyCounter = 1;
+var availPolyCounter = 1;
+var maxReqPolyCounter = 1;
+
+
+function preload() {
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('platform', 'assets/platform.png');
+    game.load.image('handle', 'assets/sky.png');
+    game.load.image('node', 'assets/circle_blue.png');
+}
+
+function create() {
+    game.stage.backgroundColor = '#f8f4f4';
+    line = new Phaser.Line(00, 250, 800, 250);
+
+
+    var loopCounter = 1;
+    for (var eachHour in shiftData.availableLevels) {
+        if (shiftData.availableLevels.hasOwnProperty(eachHour)) {
+            x1 = loopCounter * hourScale;
+            y1 = 250 - (shiftData.availableLevels[eachHour] * 10);
+            x2 = (loopCounter+1) * hourScale;
+            y2 = y1;
+
+            if(availPolyCoordinates[availPolyCounter-1]){
+
+                if((availPolyCoordinates[availPolyCounter-1].x == x1) && (availPolyCoordinates[availPolyCounter-1].y == y1)){
+                    availPolyCoordinates.splice(availPolyCounter-1, 1);
+                    availPolyCounter--;
+                    
+                }
+            }
+
+            availPolyCoordinates.push({x: x1,y: y1});
+            availPolyCoordinates.push({x: x2,y: y2});
+            loopCounter++;
+            availPolyCounter += 2;
+            
+        }
+    }
+    availPolyCoordinates.push({x:loopCounter * hourScale,y:250});
+    availPolyCounter++;    
+
+    var loopCounter = 1;
+    for (var eachHour in shiftData.maxRequiredLevels) {
+        if (shiftData.maxRequiredLevels.hasOwnProperty(eachHour)) {
+            x1 = loopCounter * hourScale;
+            y1 = 250 - (shiftData.maxRequiredLevels[eachHour] * 10);
+            x2 = (loopCounter+1) * hourScale;
+            y2 = y1;
+
+            if(maxReqPolyCoordinates[maxReqPolyCounter-1]){
+
+                if((maxReqPolyCoordinates[maxReqPolyCounter-1].x == x1) && (maxReqPolyCoordinates[maxReqPolyCounter-1].y == y1)){
+                    maxReqPolyCoordinates.splice(maxReqPolyCounter-1, 1);
+                    maxReqPolyCounter--;
+                    
+                }
+            }
+
+            maxReqPolyCoordinates.push({x: x1,y: y1});
+            maxReqPolyCoordinates.push({x: x2,y: y2});
+            loopCounter++;
+            maxReqPolyCounter += 2;
+            
+        }
+    }
+    maxReqPolyCoordinates.push({x:loopCounter * hourScale,y:250});
+    maxReqPolyCounter++;        
+
+    var loopCounter = 1;
+    for (var eachHour in shiftData.minRequiredLevels) {
+        if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
+            x1 = loopCounter * hourScale;
+            y1 = 250 - (shiftData.minRequiredLevels[eachHour] * 10);
+            x2 = (loopCounter+1) * hourScale;
+            y2 = y1;
+
+            if(minReqPolyCoordinates[minReqPolyCounter-1]){
+
+                if((minReqPolyCoordinates[minReqPolyCounter-1].x == x1) && (minReqPolyCoordinates[minReqPolyCounter-1].y == y1)){
+                    minReqPolyCoordinates.splice(minReqPolyCounter-1, 1);
+                    minReqPolyCounter--;
+                    
+                }
+            }
+
+            minReqPolyCoordinates.push({x: x1,y: y1});
+            minReqPolyCoordinates.push({x: x2,y: y2});
+            loopCounter++;
+            minReqPolyCounter += 2;
+            
+        }
+    }
+    minReqPolyCoordinates.push({x:loopCounter * hourScale,y:250});
+    minReqPolyCounter++;
+
+
+
+
+
+    availPoly = new Phaser.Polygon();
+    availPoly.setTo(availPolyCoordinates);
+    graphics = game.add.graphics(0, 0);
+    graphics.lineStyle(2, 0xcacacb);
+    graphics.beginFill(0xe7e7e9);
+    graphics.drawPolygon(availPoly.points);
+    graphics.endFill();  
+    
+    
+    maxReqPoly = new Phaser.Polygon();
+    maxReqPoly.setTo(maxReqPolyCoordinates);
+    graphics = game.add.graphics(0, 0);
+    graphics.lineStyle(2, 0xeea2b7);
+    //graphics.beginFill(0xeea2b7);
+    graphics.drawPolygon(maxReqPoly.points);
+    graphics.endFill();  
+
+    minReqPoly = new Phaser.Polygon();
+    minReqPoly.setTo(minReqPolyCoordinates);
+    graphics1 = game.add.graphics(0, 0);
+    graphics1.lineStyle(2, 0x9eb282);
+    //graphics1.beginFill(0xe7e7e9);
+    graphics1.drawPolygon(minReqPoly.points);
+    graphics1.endFill();  
+
+    var loopCounter = 1;
+    for (var eachHour in shiftData.availableLevels) {
+        if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
+            y1 = shiftData.minRequiredLevels[eachHour] * 10;    // y coordinate of reqLevels 
+            y2 = shiftData.availableLevels[eachHour] * 10;      // y coordinate of availableLevels
+
+            if(y1 > y2){
+                x1 = loopCounter * hourScale;    //x coordinate of the Hour Bar (same for both levels)
+                x2 = (loopCounter+1) * hourScale;    //(x coordinate + width) of the Hour Bar (same for both levels)
+                
+                underStaffPolygon[loopCounter] = new Phaser.Polygon();
+                underStaffPolygon[loopCounter].setTo([
+                    {x: x1, y: 250 - y1 },
+                    {x: x2, y: 250 - y1 },
+                    {x: x2, y: 250 - y2 },
+                    {x: x1, y: 250 - y2 },                   
+                ]);
+                console.log( underStaffPolygon[loopCounter]);
+                graphics = game.add.graphics(0, 0);
+                //graphics.lineStyle(2, 0xcacacb);
+                graphics.beginFill(0X9c1003);
+                graphics.drawPolygon(underStaffPolygon[loopCounter].points);
+                graphics.endFill(); 
+            }
+              
+        }
+        if (shiftData.maxRequiredLevels.hasOwnProperty(eachHour)) {
+            y1 = shiftData.maxRequiredLevels[eachHour] * 10;    // y coordinate of reqLevels 
+            y2 = shiftData.availableLevels[eachHour] * 10;      // y coordinate of availableLevels
+
+            if(y1 < y2){
+                x1 = loopCounter * hourScale;    //x coordinate of the Hour Bar (same for both levels)
+                x2 = (loopCounter+1) * hourScale;    //(x coordinate + width) of the Hour Bar (same for both levels)
+                
+                overStaffPolygon[loopCounter] = new Phaser.Polygon();
+                overStaffPolygon[loopCounter].setTo([
+                    {x: x1, y: 250 - y1 },
+                    {x: x2, y: 250 - y1 },
+                    {x: x2, y: 250 - y2 },
+                    {x: x1, y: 250 - y2 },                   
+                ]);
+                graphics = game.add.graphics(0, 0);
+                //graphics.lineStyle(2, 0xcacacb);
+                graphics.beginFill(0xe3da7d);
+                graphics.drawPolygon(overStaffPolygon[loopCounter].points);
+                graphics.endFill(); 
+            }
+              
+        }        
+                        
+            loopCounter++;
+    }      
+
+   
+}
+
+
+function update() {
+
+}
+
+function render() {
+    game.debug.geom(line);
+}
+
+
+</script>
+
+</body>
+</html>
