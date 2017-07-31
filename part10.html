@@ -106,6 +106,8 @@ var shiftData = {
     }            
 }
 var hourScale = 30;
+var yAxisRef = 205;
+
 var minReqPolyCoordinates = [];
 var maxReqPolyCoordinates = [];
 var availPolyCoordinates = [];
@@ -114,9 +116,9 @@ var overStaffPolygon = [];
 var xScaleText = [];
 var yScaleTextPositive = [];
 var yScaleTextNegative = [];
-minReqPolyCoordinates.push({x:30, y:250});
-maxReqPolyCoordinates.push({x:30, y:250});
-availPolyCoordinates.push({x:30, y:250});
+minReqPolyCoordinates.push({x:30, y:yAxisRef});
+maxReqPolyCoordinates.push({x:30, y:yAxisRef});
+availPolyCoordinates.push({x:30, y:yAxisRef});
 var minReqPolyCounter = 1;
 var availPolyCounter = 1;
 var maxReqPolyCounter = 1;
@@ -135,7 +137,7 @@ function create() {
     for (var eachHour in shiftData.availableLevels) {
         if (shiftData.availableLevels.hasOwnProperty(eachHour)) {
             x1 = loopCounter * hourScale;
-            y1 = 250 - (shiftData.availableLevels[eachHour] * 10);
+            y1 = yAxisRef - (shiftData.availableLevels[eachHour] * 10);
             x2 = (loopCounter+1) * hourScale;
             y2 = y1;
 
@@ -155,14 +157,14 @@ function create() {
             
         }
     }
-    availPolyCoordinates.push({x:loopCounter * hourScale,y:250});
+    availPolyCoordinates.push({x:loopCounter * hourScale,y:yAxisRef});
     availPolyCounter++;    
 
     var loopCounter = 1;
     for (var eachHour in shiftData.maxRequiredLevels) {
         if (shiftData.maxRequiredLevels.hasOwnProperty(eachHour)) {
             x1 = loopCounter * hourScale;
-            y1 = 250 - (shiftData.maxRequiredLevels[eachHour] * 10);
+            y1 = yAxisRef - (shiftData.maxRequiredLevels[eachHour] * 10);
             x2 = (loopCounter+1) * hourScale;
             y2 = y1;
 
@@ -182,14 +184,14 @@ function create() {
             
         }
     }
-    maxReqPolyCoordinates.push({x:loopCounter * hourScale,y:250});
+    maxReqPolyCoordinates.push({x:loopCounter * hourScale,y:yAxisRef});
     maxReqPolyCounter++;        
 
     var loopCounter = 1;
     for (var eachHour in shiftData.minRequiredLevels) {
         if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
             x1 = loopCounter * hourScale;
-            y1 = 250 - (shiftData.minRequiredLevels[eachHour] * 10);
+            y1 = yAxisRef - (shiftData.minRequiredLevels[eachHour] * 10);
             x2 = (loopCounter+1) * hourScale;
             y2 = y1;
 
@@ -209,7 +211,7 @@ function create() {
             
         }
     }
-    minReqPolyCoordinates.push({x:loopCounter * hourScale,y:250});
+    minReqPolyCoordinates.push({x:loopCounter * hourScale,y:yAxisRef});
     minReqPolyCounter++;
 
 
@@ -253,10 +255,10 @@ function create() {
                 
                 underStaffPolygon[loopCounter] = new Phaser.Polygon();
                 underStaffPolygon[loopCounter].setTo([
-                    {x: x1, y: 250 - y1 },
-                    {x: x2, y: 250 - y1 },
-                    {x: x2, y: 250 - y2 },
-                    {x: x1, y: 250 - y2 },                   
+                    {x: x1, y: yAxisRef - y1 },
+                    {x: x2, y: yAxisRef - y1 },
+                    {x: x2, y: yAxisRef - y2 },
+                    {x: x1, y: yAxisRef - y2 },                   
                 ]);
                 console.log( underStaffPolygon[loopCounter]);
                 graphics = game.add.graphics(0, 0);
@@ -278,10 +280,10 @@ function create() {
                 
                 overStaffPolygon[loopCounter] = new Phaser.Polygon();
                 overStaffPolygon[loopCounter].setTo([
-                    {x: x1, y: 250 - y1 },
-                    {x: x2, y: 250 - y1 },
-                    {x: x2, y: 250 - y2 },
-                    {x: x1, y: 250 - y2 },                   
+                    {x: x1, y: yAxisRef - y1 },
+                    {x: x2, y: yAxisRef - y1 },
+                    {x: x2, y: yAxisRef - y2 },
+                    {x: x1, y: yAxisRef - y2 },                   
                 ]);
                 graphics = game.add.graphics(0, 0);
                 //graphics.lineStyle(2, 0xcacacb);
@@ -309,7 +311,7 @@ function render() {
     //game.debug.geom(yAxis);
 }
 function createScale() {
-    xAxis = new Phaser.Line(0, 251, 800, 251);
+    xAxis = new Phaser.Line(0, yAxisRef + 1, 800, yAxisRef + 1);
     yAxis = new Phaser.Line(30, 00, 30, 800);
     var xAxisGraphics=game.add.graphics(0,0);
     xAxisGraphics.lineStyle(2, 0xb1b1b1);
@@ -327,16 +329,16 @@ function createScale() {
             loopCounter++;
             continue;
         }
-        xScaleText[loopCounter] = game.add.text(hourScale * loopCounter, 265, loopCounter-1, {fontSize : "12px"});
+        xScaleText[loopCounter] = game.add.text(hourScale * loopCounter, yAxisRef + 15, loopCounter-1, {fontSize : "12px"});
         xScaleText[loopCounter].anchor.setTo(0.5, 0.5);
         xScaleText[loopCounter].addColor('#b1b1b1');
 
         if((loopCounter-1) % 3 ==0){
-            yScaleTextPositive[loopCounter] = game.add.text(hourScale-10, 250 - ((loopCounter-1)*10), loopCounter-1, {fontSize : "12px"});
+            yScaleTextPositive[loopCounter] = game.add.text(hourScale-10, yAxisRef - ((loopCounter-1)*10), loopCounter-1, {fontSize : "12px"});
             yScaleTextPositive[loopCounter].anchor.setTo(0.5, 0.5);
             yScaleTextPositive[loopCounter].addColor('#b1b1b1');
 
-            yScaleTextNegative[loopCounter] = game.add.text(hourScale-10, 250 + ((loopCounter-1)*10), -(loopCounter-1), {fontSize : "12px"});
+            yScaleTextNegative[loopCounter] = game.add.text(hourScale-10, yAxisRef + ((loopCounter-1)*10), -(loopCounter-1), {fontSize : "12px"});
             yScaleTextNegative[loopCounter].anchor.setTo(0.5, 0.5);
             yScaleTextNegative[loopCounter].addColor('#b1b1b1');             
         }       
