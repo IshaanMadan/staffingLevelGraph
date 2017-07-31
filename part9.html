@@ -53,7 +53,7 @@ var shiftData = {
     },
     "requiredLevels": {
         "0 - 1" : 6,
-        "1 - 2" : 12,
+        "1 - 2" : 6,
         "2 - 3" : 3,
         "3 - 4" : 5,
         "4 - 5" : 7,
@@ -129,15 +129,14 @@ function create() {
 
     counter = 1;
     reqStaffLevelGroup = game.add.group();
+
     // loop to iterate over required staff levels for each hour 
     for (var eachHour in shiftData.requiredLevels) {
         if (shiftData.requiredLevels.hasOwnProperty(eachHour)) {
             createRequiredHourBar(shiftData.requiredLevels[eachHour], counter);
             counter++;
         }
-    }
-  
-   
+    }  
 }
 
 function reqBarsToTop() {
@@ -148,7 +147,6 @@ function reqBarsToTop() {
         availBarHandler[i].visible = false;
         reqBarHandler[i].visible = true;
     }
-
 }
 function availBarsToTop() {
 
@@ -170,7 +168,7 @@ function createAvailableHourBar( hourlyLevel, counter ){
     availableBar[counter].width = 30;
     availableBar[counter].inputEnabled = true;
     availableBar[counter].barName = "Bar-" + counter;
-    availableBar[counter].alpha = 0.8;
+    //availableBar[counter].alpha = 0.8;
 
     
     // creating and aligning the handler to the available bar sprite
@@ -203,7 +201,7 @@ function createRequiredHourBar( hourlyLevel, counter ){
     requiredBar[counter].width = 30;
     requiredBar[counter].inputEnabled = true;
     requiredBar[counter].barName = "Bar-" + counter;
-    requiredBar[counter].alpha = 0.8;
+    //requiredBar[counter].alpha = 0.8;
 
     
     // creating and aligning the handler to the require bar sprite
@@ -285,6 +283,7 @@ function update() {
 function render() {
 
 }
+
 
 </script>
 
