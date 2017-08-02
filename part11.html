@@ -1,0 +1,367 @@
+<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Phaser - Staffing Level Graph</title>
+    <script src="//cdn.jsdelivr.net/phaser/2.6.2/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+            background: #e0e0e0;
+        }
+        canvas, iframe{
+            position: absolute;
+            top:0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin:auto;
+        }
+    </style>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+</head>
+<body>
+<p>test</p>
+<script type="text/javascript">
+
+var game = new Phaser.Game(800, 405, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
+
+var shiftData = {
+    "shiftScale": 1,
+    "availableLevels": {
+        "0 - 1" : 8,
+        "1 - 2" : 3,
+        "2 - 3" : 7,
+        "3 - 4" : 10,
+        "4 - 5" : 9,
+        "5 - 6" : 9,
+        "6 - 7" : 9,
+        "7 - 8" : 7,
+        "8 - 9" : 7,
+        "9 - 10" : 7,
+        "10 - 11" : 6,
+        "11 - 12" : 4,
+        "12 - 13" : 4,
+        "13 - 14" : 8,
+        "14 - 15" : 11,
+        "15 - 16" : 15,
+        "16 - 17" : 15,
+        "17 - 18" : 15,
+        "18 - 19" : 10,
+        "19 - 20" : 10,
+        "20 - 21" : 13,
+        "21 - 22" : 2,
+        "22 - 23" : 2,
+        "23 - 24" : 13,
+    },
+    "minRequiredLevels": {
+        "0 - 1" : 6,
+        "1 - 2" : 10,
+        "2 - 3" : 8,
+        "3 - 4" : 9,
+        "4 - 5" : 8,
+        "5 - 6" : 8,
+        "6 - 7" : 8,
+        "7 - 8" : 5,
+        "8 - 9" : 6,
+        "9 - 10" : 6,
+        "10 - 11" : 4,
+        "11 - 12" : 6,
+        "12 - 13" : 6,
+        "13 - 14" : 10,
+        "14 - 15" : 10,
+        "15 - 16" : 10,
+        "16 - 17" : 10,
+        "17 - 18" : 7,
+        "18 - 19" : 8,
+        "19 - 20" : 8,
+        "20 - 21" : 12,
+        "21 - 22" : 8,
+        "22 - 23" : 9,
+        "23 - 24" : 11,
+    },
+    "maxRequiredLevels": {
+        "0 - 1" : 8,
+        "1 - 2" : 11,
+        "2 - 3" : 12,
+        "3 - 4" : 13,
+        "4 - 5" : 13,
+        "5 - 6" : 13,
+        "6 - 7" : 10,
+        "7 - 8" : 10,
+        "8 - 9" : 10,
+        "9 - 10" : 8,
+        "10 - 11" : 12,
+        "11 - 12" : 9,
+        "12 - 13" : 11,
+        "13 - 14" : 11,
+        "14 - 15" : 11,
+        "15 - 16" : 12,
+        "16 - 17" : 12,
+        "17 - 18" : 12,
+        "18 - 19" : 11,
+        "19 - 20" : 11,
+        "20 - 21" : 14,
+        "21 - 22" : 10,
+        "22 - 23" : 11,
+        "23 - 24" : 11,
+    }            
+}
+
+var yAxisRef = 250;
+var hourScale = 30;
+var minReqColor = 0xeea2b7;
+var availHandlerStartYCoordinate, minReqHandlerStartYCoordinate, availHandlerId, minReqCenterHandlerId, availDragDist, minReqDragDist;
+var availableBarHeight, minRequiredBarHeight, bounds;
+var availableBar = [];
+var minRequiredBar = [];
+var availBarHandler = [];
+var minReqCenterHandler = [];
+var minReqLeftHandler = [];
+var minReqRightHandler = [];
+var minReqLeftLine = [];
+var minReqMiddleLine = [];
+var xScaleText = [];
+var yScaleTextPositive = [];
+var yScaleTextNegative = [];
+var minReqLeftLineGraphic = [];
+var minReqMiddleLineGraphic = [];
+var availStaffLevelGroup, minReqStaffLevelGroup;
+var minRequiredLevelsLength = Object.keys(shiftData.minRequiredLevels).length;
+var availableLevelsLength = Object.keys(shiftData.availableLevels).length;
+
+function preload() {
+    game.load.image('sky', 'assets/sky.png');
+    game.load.image('platform', 'assets/platform.png');
+    game.load.image('transparent', 'assets/transparent.png');
+    game.load.image('handle', 'assets/sky.png');
+    game.load.image('node', 'assets/circle_blue.png');
+}
+
+function create() {
+    game.stage.backgroundColor = '#ffffff';
+
+    positiveBounds = new Phaser.Rectangle(30, 00, 720, 250); 
+
+    counter = 1;
+    minReqStaffLevelGroup = game.add.group();
+
+    // loop to iterate over minRequired staff levels for each hour 
+    for (var eachHour in shiftData.minRequiredLevels) {
+        if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
+            createminRequiredHourBar(shiftData.minRequiredLevels[eachHour], counter, minRequiredLevelsLength);
+            counter++;
+        }
+    }  
+
+    createScale();
+}
+
+function createminRequiredHourBar( hourlyLevel, counter, minRequiredLevelsLength ){
+
+    // creating a bar sprite and positioning it according to minRequired staff levels
+    minRequiredBar[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'transparent');
+    minRequiredBar[counter].height = hourlyLevel*10;
+    minRequiredBar[counter].width = 30;
+    minRequiredBar[counter].inputEnabled = true;
+    minRequiredBar[counter].barName = "Bar-" + counter;
+    minRequiredBar[counter].barId = counter;
+    //minRequiredBar[counter].alpha = 0.8;
+
+    
+    // creating and aligning the handler to the minRequire bar sprite
+    minReqCenterHandler[counter] = game.add.sprite(counter*30 + 15, 250 - hourlyLevel*10, 'node');
+    minReqCenterHandler[counter].minReqCenterHandlerId = counter;
+    minReqCenterHandler[counter].anchor.set(0.5);
+    minReqCenterHandler[counter].scale.setTo(0.05);
+    minReqCenterHandler[counter].inputEnabled = true;
+    minReqCenterHandler[counter].input.allowHorizontalDrag = false;
+    minReqCenterHandler[counter].input.enableDrag(false, true);
+    minReqCenterHandler[counter].input.useHandCursor = true;
+    minReqCenterHandler[counter].input.boundsRect = positiveBounds;
+    //minReqCenterHandler[counter].visible = false;
+
+    if(counter == 1){
+        minReqRightHandler[counter-1] = game.add.sprite(30, 250, 'node');
+        minReqRightHandler[counter-1].minReqLeftHandlerId = counter-1;
+        minReqRightHandler[counter-1].anchor.set(0.5);
+        minReqRightHandler[counter-1].scale.setTo(0.04); 
+    }
+
+    // creating and aligning the handler to the minRequire bar sprite
+    minReqLeftHandler[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'node');
+    minReqLeftHandler[counter].minReqLeftHandlerId = counter;
+    minReqLeftHandler[counter].visible = false;
+    minReqLeftHandler[counter].anchor.set(0.5);
+    minReqLeftHandler[counter].scale.setTo(0.04);   
+
+    // creating and aligning the handler to the minRequire bar sprite
+    minReqRightHandler[counter] = game.add.sprite((counter+1)*30, 250 - hourlyLevel*10, 'node');
+    minReqRightHandler[counter].minReqRightHandlerId = counter;
+    minReqRightHandler[counter].visible = false;
+    minReqRightHandler[counter].anchor.set(0.5);
+    minReqRightHandler[counter].scale.setTo(0.04);
+  
+    
+    minReqLeftLine[counter] = new Phaser.Line(minReqLeftHandler[counter].x, minReqLeftHandler[counter].y, minReqRightHandler[counter-1].x, minReqRightHandler[counter-1].y);         
+    minReqMiddleLine[counter] = new Phaser.Line(minReqLeftHandler[counter].x, minReqLeftHandler[counter].y, minReqRightHandler[counter].x, minReqRightHandler[counter].y);         
+    
+    minReqLeftLineGraphic[counter]=game.add.graphics(0,0);
+    minReqLeftLineGraphic[counter].lineStyle(2, minReqColor, 1);
+    minReqLeftLineGraphic[counter].moveTo(minReqLeftHandler[counter].x, minReqLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
+    minReqLeftLineGraphic[counter].lineTo(minReqRightHandler[counter-1].x, minReqRightHandler[counter-1].y);
+
+    minReqMiddleLineGraphic[counter]=game.add.graphics(0,0);
+    minReqMiddleLineGraphic[counter].lineStyle(2, minReqColor, 1);
+    minReqMiddleLineGraphic[counter].moveTo(minReqLeftHandler[counter].x, minReqLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
+    minReqMiddleLineGraphic[counter].lineTo(minReqRightHandler[counter].x, minReqRightHandler[counter].y);
+
+    if(counter ==  minRequiredLevelsLength){
+        minReqLeftHandler[counter+1] = game.add.sprite((counter+1)*30, 250, 'node');
+        minReqLeftHandler[counter+1].minReqLeftHandlerId = counter+1;
+        minReqLeftHandler[counter+1].anchor.set(0.5);
+        minReqLeftHandler[counter+1].scale.setTo(0.04); 
+        minReqLeftLine[counter+1] = new Phaser.Line(minReqLeftHandler[counter+1].x, minReqLeftHandler[counter+1].y, minReqRightHandler[counter].x, minReqRightHandler[counter].y);                   
+        minReqLeftLineGraphic[counter+1]=game.add.graphics(0,0);
+        minReqLeftLineGraphic[counter+1].lineStyle(2, minReqColor, 1);
+        minReqLeftLineGraphic[counter+1].moveTo(minReqLeftHandler[counter+1].x, minReqLeftHandler[counter+1].y);//moving position of graphic if you draw mulitple lines
+        minReqLeftLineGraphic[counter+1].lineTo(minReqRightHandler[counter].x, minReqRightHandler[counter].y);
+    }
+    
+    // attaching events to the handler
+    minReqCenterHandler[counter].events.onDragStart.add(minReqHandlerDragStart);
+    minReqCenterHandler[counter].events.onDragUpdate.add(minReqHandlerDragUpdate);
+    minReqCenterHandler[counter].events.onDragStop.add(minReqHandlerDragStop);
+    minRequiredBar[counter].events.onInputOver.add(minReqBarInputOver);
+    minRequiredBar[counter].events.onInputOut.add(minReqBarInputOut);
+
+    minReqStaffLevelGroup.add(minRequiredBar[counter]);
+    minReqStaffLevelGroup.add(minReqCenterHandler[counter]);
+
+}
+
+
+function minReqBarInputOver(bar, pointer) {    
+    //barId = bar.barId;
+    //minReqCenterHandler[barId].visible = true;
+}
+
+function minReqBarInputOut(bar, pointer) {
+    //barId = bar.barId;
+    //minReqCenterHandler[barId].visible = false;    
+}
+
+
+function minReqHandlerDragStart(handler, pointer, x, y) {
+    
+    minReqHandlerStartYCoordinate = y;
+    minRequiredBarHeight =  minRequiredBar[minReqCenterHandlerId].height;
+}
+
+function minReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+    minReqCenterHandlerId = handler.minReqCenterHandlerId;
+    //console.log("minReqCenterHandlerId", minReqCenterHandlerId);
+    minReqDragDist = minReqHandlerStartYCoordinate - handler.y;
+    //console.log("minReqDragDist", minReqDragDist);
+    if(!isNaN(minReqDragDist)){
+        minRequiredBar[minReqCenterHandlerId].height = minRequiredBarHeight + Math.floor(minReqDragDist / 10) * 10;
+        minRequiredBar[minReqCenterHandlerId].y = (Math.ceil(handler.y / 10) * 10); 
+
+        minReqRightHandler[minReqCenterHandlerId].y = minReqLeftHandler[minReqCenterHandlerId].y = minRequiredBar[minReqCenterHandlerId].y;
+    
+        minReqLeftLine[minReqCenterHandlerId].fromSprite(minReqLeftHandler[minReqCenterHandlerId], minReqRightHandler[minReqCenterHandlerId-1], false);
+        minReqLeftLine[minReqCenterHandlerId+1].fromSprite(minReqLeftHandler[minReqCenterHandlerId+1], minReqRightHandler[minReqCenterHandlerId], false);
+        minReqMiddleLine[minReqCenterHandlerId].fromSprite(minReqLeftHandler[minReqCenterHandlerId], minReqRightHandler[minReqCenterHandlerId], false);
+        
+        minReqLeftLineGraphic[minReqCenterHandlerId].clear();
+        minReqLeftLineGraphic[minReqCenterHandlerId].lineStyle(2, minReqColor, 1);        
+        minReqLeftLineGraphic[minReqCenterHandlerId].moveTo(minReqLeftHandler[minReqCenterHandlerId].x, minReqLeftHandler[minReqCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
+        minReqLeftLineGraphic[minReqCenterHandlerId].lineTo(minReqRightHandler[minReqCenterHandlerId-1].x, minReqRightHandler[minReqCenterHandlerId-1].y);
+
+        minReqLeftLineGraphic[minReqCenterHandlerId+1].clear();
+        minReqLeftLineGraphic[minReqCenterHandlerId+1].lineStyle(2, minReqColor, 1);        
+        minReqLeftLineGraphic[minReqCenterHandlerId+1].moveTo(minReqLeftHandler[minReqCenterHandlerId+1].x, minReqLeftHandler[minReqCenterHandlerId+1].y);//moving position of graphic if you draw mulitple lines
+        minReqLeftLineGraphic[minReqCenterHandlerId+1].lineTo(minReqRightHandler[minReqCenterHandlerId].x, minReqRightHandler[minReqCenterHandlerId].y);
+
+        minReqMiddleLineGraphic[minReqCenterHandlerId].clear();
+        minReqMiddleLineGraphic[minReqCenterHandlerId].lineStyle(2, minReqColor, 1);
+        minReqMiddleLineGraphic[minReqCenterHandlerId].moveTo(minReqLeftHandler[minReqCenterHandlerId].x, minReqLeftHandler[minReqCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
+        minReqMiddleLineGraphic[minReqCenterHandlerId].lineTo(minReqRightHandler[minReqCenterHandlerId].x, minReqRightHandler[minReqCenterHandlerId].y);
+
+    }
+}
+
+
+function minReqHandlerDragStop(handler, pointer) {
+
+    if(handler.y !== minRequiredBar[minReqCenterHandlerId].y){
+        handler.y = minRequiredBar[minReqCenterHandlerId].y;
+    }
+
+}
+
+function update() {
+
+}
+
+function render() {
+    // counter = 1;
+    // // loop to iterate over minRequired staff levels for each hour 
+    // for (var eachHour in shiftData.minRequiredLevels) {
+    //     if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
+    //         game.debug.geom(minReqLeftLine[counter]);
+    //         game.debug.geom(minReqMiddleLine[counter]);
+    //         if(counter ==  minRequiredLevelsLength){
+    //             game.debug.geom(minReqLeftLine[counter+1]);
+    //         }    
+    //         counter++;
+    //     }
+    // }  
+}
+
+function createScale() {
+    xAxis = new Phaser.Line(0, yAxisRef + 1, 800, yAxisRef + 1);
+    yAxis = new Phaser.Line(30, 00, 30, 800);
+    var xAxisGraphics=game.add.graphics(0,0);
+    xAxisGraphics.lineStyle(2, 0xb1b1b1);
+    xAxisGraphics.moveTo(xAxis.start.x,xAxis.start.y);//moving position of graphic if you draw mulitple lines    
+    xAxisGraphics.lineTo(xAxis.end.x,xAxis.end.y);
+    xAxisGraphics.endFill();
+    var yAxisGraphics=game.add.graphics(0,0);
+    yAxisGraphics.lineStyle(2, 0xb1b1b1);
+    yAxisGraphics.moveTo(yAxis.start.x,yAxis.start.y);//moving position of graphic if you draw mulitple lines    
+    yAxisGraphics.lineTo(yAxis.end.x,yAxis.end.y);
+    yAxisGraphics.endFill();
+    var loopCounter = 1;
+    while(loopCounter <=25){
+        if(loopCounter == 1){
+            loopCounter++;
+            continue;
+        }
+        xScaleText[loopCounter] = game.add.text(hourScale * loopCounter, yAxisRef + 15, loopCounter-1, {fontSize : "12px"});
+        xScaleText[loopCounter].anchor.setTo(0.5, 0.5);
+        xScaleText[loopCounter].addColor('#b1b1b1');
+
+        if((loopCounter-1) % 3 ==0){
+            yScaleTextPositive[loopCounter] = game.add.text(hourScale-10, yAxisRef - ((loopCounter-1)*10), loopCounter-1, {fontSize : "12px"});
+            yScaleTextPositive[loopCounter].anchor.setTo(0.5, 0.5);
+            yScaleTextPositive[loopCounter].addColor('#b1b1b1');
+
+            yScaleTextNegative[loopCounter] = game.add.text(hourScale-10, yAxisRef + ((loopCounter-1)*10), -(loopCounter-1), {fontSize : "12px"});
+            yScaleTextNegative[loopCounter].anchor.setTo(0.5, 0.5);
+            yScaleTextNegative[loopCounter].addColor('#b1b1b1');             
+        }       
+
+
+        loopCounter++;
+    }
+
+}
+$('p').click(function(){
+   // minReqCenterHandler[2].y = 100;
+});
+
+</script>
+
+</body>
+</html>
