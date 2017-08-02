@@ -8,6 +8,7 @@
         body {
             margin: 0;
             background: #e0e0e0;
+            text-align: center;
         }
         canvas, iframe{
             position: absolute;
@@ -21,7 +22,14 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
 </head>
 <body>
-<p>test</p>
+<p>Select to Edit a Layer</p>
+<select class="onTopSelect">
+    <option value = "" selected>None</option>
+    <option value = "avail" >Available</option>
+    <option value = "minReq" >MinRequired</option>
+    <option value = "maxReq" >MaxRequired</option>
+</select>
+
 <script type="text/javascript">
 
 var game = new Phaser.Game(800, 405, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
@@ -107,34 +115,74 @@ var shiftData = {
         "23 - 24" : 11,
     }            
 }
+//common vars
 
+var xScaleText = [];
+var yScaleTextPositive = [];
+var yScaleTextNegative = [];
 var yAxisRef = 250;
 var hourScale = 30;
-var minReqColor = 0xeea2b7;
-var availHandlerStartYCoordinate, minReqHandlerStartYCoordinate, availHandlerId, minReqCenterHandlerId, availDragDist, minReqDragDist;
-var availableBarHeight, minRequiredBarHeight, bounds;
-var availableBar = [];
+var underStaffPolygon = [];
+var overStaffPolygon = [];
+var underStaffGraphic = [];
+var overStaffGraphic = [];
+var polygonGroup;
+
+// minRequiredLevels vars
+var minReqColor = 0x557d1d;
+var minReqHandlerStartYCoordinate;
+var minReqCenterHandlerId;
+var minReqDragDist;
+var minRequiredBarHeight;
 var minRequiredBar = [];
-var availBarHandler = [];
 var minReqCenterHandler = [];
 var minReqLeftHandler = [];
 var minReqRightHandler = [];
 var minReqLeftLine = [];
 var minReqMiddleLine = [];
-var xScaleText = [];
-var yScaleTextPositive = [];
-var yScaleTextNegative = [];
 var minReqLeftLineGraphic = [];
 var minReqMiddleLineGraphic = [];
-var availStaffLevelGroup, minReqStaffLevelGroup;
+var minReqStaffLevelGroup;
 var minRequiredLevelsLength = Object.keys(shiftData.minRequiredLevels).length;
+
+// maxRequiredLevels vars
+var maxReqColor = 0xeea2b7;
+var maxReqHandlerStartYCoordinate;
+var maxReqCenterHandlerId;
+var maxReqDragDist;
+var maxRequiredBarHeight;
+var maxRequiredBar = [];
+var maxReqCenterHandler = [];
+var maxReqLeftHandler = [];
+var maxReqRightHandler = [];
+var maxReqLeftLine = [];
+var maxReqMiddleLine = [];
+var maxReqLeftLineGraphic = [];
+var maxReqMiddleLineGraphic = [];
+var maxReqStaffLevelGroup;
+var maxRequiredLevelsLength = Object.keys(shiftData.maxRequiredLevels).length;
+
+// availableLevels vars
+var availColor = 0xcacacb;
+var availHandlerStartYCoordinate;
+var availCenterHandlerId;
+var availDragDist;
+var availBarHeight;
+var availBar = [];
+var availCenterHandler = [];
+var availLeftHandler = [];
+var availRightHandler = [];
+var availLeftLine = [];
+var availMiddleLine = [];
+var availLeftLineGraphic = [];
+var availMiddleLineGraphic = [];
+var availStaffLevelGroup;
 var availableLevelsLength = Object.keys(shiftData.availableLevels).length;
 
+
 function preload() {
-    game.load.image('sky', 'assets/sky.png');
-    game.load.image('platform', 'assets/platform.png');
+    game.load.image('greyImage', 'assets/greyImage.jpg');
     game.load.image('transparent', 'assets/transparent.png');
-    game.load.image('handle', 'assets/sky.png');
     game.load.image('node', 'assets/circle_blue.png');
 }
 
@@ -143,19 +191,135 @@ function create() {
 
     positiveBounds = new Phaser.Rectangle(30, 00, 720, 250); 
 
-    counter = 1;
-    minReqStaffLevelGroup = game.add.group();
+    loopCounter = 1;
+    availStaffLevelGroup = game.add.group();
+    // loop to iterate over available staff levels for each hour 
+    for (var eachHour in shiftData.availableLevels) {
+        if (shiftData.availableLevels.hasOwnProperty(eachHour)) {
+            createAvailableHourBar(shiftData.availableLevels[eachHour], loopCounter, availableLevelsLength);
+            loopCounter++;
+        }
+    }
 
+    loopCounter = 1;
+    minReqStaffLevelGroup = game.add.group();
     // loop to iterate over minRequired staff levels for each hour 
     for (var eachHour in shiftData.minRequiredLevels) {
         if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
-            createminRequiredHourBar(shiftData.minRequiredLevels[eachHour], counter, minRequiredLevelsLength);
-            counter++;
+            createminRequiredHourBar(shiftData.minRequiredLevels[eachHour], loopCounter, minRequiredLevelsLength);
+            loopCounter++;
         }
-    }  
+    }
 
+    loopCounter = 1;
+    maxReqStaffLevelGroup = game.add.group();
+    // loop to iterate over maxRequired staff levels for each hour 
+    for (var eachHour in shiftData.maxRequiredLevels) {
+        if (shiftData.maxRequiredLevels.hasOwnProperty(eachHour)) {
+            createmaxRequiredHourBar(shiftData.maxRequiredLevels[eachHour], loopCounter, maxRequiredLevelsLength);
+            loopCounter++;
+        }
+    }        
+    polygonGroup = game.add.group();
     createScale();
+    indicateConflictAreas();    
 }
+
+
+
+
+
+function createAvailableHourBar( hourlyLevel, counter, availableLevelsLength ){
+
+    // creating a bar sprite and positioning it according to available staff levels
+    availBar[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'greyImage');
+    availBar[counter].height = hourlyLevel*10;
+    availBar[counter].width = 30;
+    availBar[counter].inputEnabled = true;
+    availBar[counter].barName = "Bar-" + counter;
+    availBar[counter].barId = counter;
+    availBar[counter].alpha = 0.8;
+
+    
+    // creating and aligning the handler to the available bar sprite
+    availCenterHandler[counter] = game.add.sprite(counter*30 + 15, 250 - hourlyLevel*10, 'node');
+    availCenterHandler[counter].availCenterHandlerId = counter;
+    availCenterHandler[counter].anchor.set(0.5);
+    availCenterHandler[counter].scale.setTo(0.05);
+    availCenterHandler[counter].inputEnabled = true;
+    availCenterHandler[counter].input.allowHorizontalDrag = false;
+    availCenterHandler[counter].input.enableDrag(false, true);
+    availCenterHandler[counter].input.useHandCursor = true;
+    availCenterHandler[counter].input.boundsRect = positiveBounds;
+    availCenterHandler[counter].visible = false;
+
+    if(counter == 1){
+        availRightHandler[counter-1] = game.add.sprite(30, 250, 'node');
+        availRightHandler[counter-1].availLeftHandlerId = counter-1;
+        availRightHandler[counter-1].anchor.set(0.5);
+        availRightHandler[counter-1].scale.setTo(0.04); 
+        availRightHandler[counter-1].visible = false; 
+    }
+
+    // creating and aligning the handler to the available bar sprite
+    availLeftHandler[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'node');
+    availLeftHandler[counter].availLeftHandlerId = counter;
+    availLeftHandler[counter].visible = false;
+    availLeftHandler[counter].anchor.set(0.5);
+    availLeftHandler[counter].scale.setTo(0.04);   
+
+    // creating and aligning the handler to the available bar sprite
+    availRightHandler[counter] = game.add.sprite((counter+1)*30, 250 - hourlyLevel*10, 'node');
+    availRightHandler[counter].availRightHandlerId = counter;
+    availRightHandler[counter].visible = false;
+    availRightHandler[counter].anchor.set(0.5);
+    availRightHandler[counter].scale.setTo(0.04);
+  
+    
+    availLeftLine[counter] = new Phaser.Line(availLeftHandler[counter].x, availLeftHandler[counter].y, availRightHandler[counter-1].x, availRightHandler[counter-1].y);         
+    availMiddleLine[counter] = new Phaser.Line(availLeftHandler[counter].x, availLeftHandler[counter].y, availRightHandler[counter].x, availRightHandler[counter].y);         
+    
+    availLeftLineGraphic[counter]=game.add.graphics(0,0);
+    availLeftLineGraphic[counter].lineStyle(2, availColor, 1);
+    availLeftLineGraphic[counter].moveTo(availLeftHandler[counter].x, availLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
+    availLeftLineGraphic[counter].lineTo(availRightHandler[counter-1].x, availRightHandler[counter-1].y);
+
+    availMiddleLineGraphic[counter]=game.add.graphics(0,0);
+    availMiddleLineGraphic[counter].lineStyle(2, availColor, 1);
+    availMiddleLineGraphic[counter].moveTo(availLeftHandler[counter].x, availLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
+    availMiddleLineGraphic[counter].lineTo(availRightHandler[counter].x, availRightHandler[counter].y);
+
+    if(counter ==  availableLevelsLength){
+        availLeftHandler[counter+1] = game.add.sprite((counter+1)*30, 250, 'node');
+        availLeftHandler[counter+1].availLeftHandlerId = counter+1;
+        availLeftHandler[counter+1].anchor.set(0.5);
+        availLeftHandler[counter+1].scale.setTo(0.04); 
+        availLeftHandler[counter+1].visible = false; 
+        availLeftLine[counter+1] = new Phaser.Line(availLeftHandler[counter+1].x, availLeftHandler[counter+1].y, availRightHandler[counter].x, availRightHandler[counter].y);                   
+        availLeftLineGraphic[counter+1]=game.add.graphics(0,0);
+        availLeftLineGraphic[counter+1].lineStyle(2, availColor, 1);
+        availLeftLineGraphic[counter+1].moveTo(availLeftHandler[counter+1].x, availLeftHandler[counter+1].y);//moving position of graphic if you draw mulitple lines
+        availLeftLineGraphic[counter+1].lineTo(availRightHandler[counter].x, availRightHandler[counter].y);
+        availStaffLevelGroup.add(availLeftLineGraphic[counter+1]);
+    }
+    
+    // attaching events to the handler
+    availCenterHandler[counter].events.onDragStart.add(availHandlerDragStart);
+    availCenterHandler[counter].events.onDragUpdate.add(availHandlerDragUpdate);
+    availCenterHandler[counter].events.onDragStop.add(availHandlerDragStop);
+    availBar[counter].events.onInputOver.add(availBarInputOver);
+    availBar[counter].events.onInputOut.add(availBarInputOut);
+
+    availStaffLevelGroup.add(availBar[counter]);
+    availStaffLevelGroup.add(availCenterHandler[counter]);
+    availStaffLevelGroup.add(availLeftHandler[counter]);
+    availStaffLevelGroup.add(availRightHandler[counter]);
+    availStaffLevelGroup.add(availLeftLineGraphic[counter]);
+    availStaffLevelGroup.add(availMiddleLineGraphic[counter]);
+
+}
+
+
 
 function createminRequiredHourBar( hourlyLevel, counter, minRequiredLevelsLength ){
 
@@ -179,13 +343,14 @@ function createminRequiredHourBar( hourlyLevel, counter, minRequiredLevelsLength
     minReqCenterHandler[counter].input.enableDrag(false, true);
     minReqCenterHandler[counter].input.useHandCursor = true;
     minReqCenterHandler[counter].input.boundsRect = positiveBounds;
-    //minReqCenterHandler[counter].visible = false;
+    minReqCenterHandler[counter].visible = false;
 
     if(counter == 1){
         minReqRightHandler[counter-1] = game.add.sprite(30, 250, 'node');
         minReqRightHandler[counter-1].minReqLeftHandlerId = counter-1;
         minReqRightHandler[counter-1].anchor.set(0.5);
         minReqRightHandler[counter-1].scale.setTo(0.04); 
+        minReqRightHandler[counter-1].visible = false; 
     }
 
     // creating and aligning the handler to the minRequire bar sprite
@@ -221,11 +386,13 @@ function createminRequiredHourBar( hourlyLevel, counter, minRequiredLevelsLength
         minReqLeftHandler[counter+1].minReqLeftHandlerId = counter+1;
         minReqLeftHandler[counter+1].anchor.set(0.5);
         minReqLeftHandler[counter+1].scale.setTo(0.04); 
+        minReqLeftHandler[counter+1].visible = false; 
         minReqLeftLine[counter+1] = new Phaser.Line(minReqLeftHandler[counter+1].x, minReqLeftHandler[counter+1].y, minReqRightHandler[counter].x, minReqRightHandler[counter].y);                   
         minReqLeftLineGraphic[counter+1]=game.add.graphics(0,0);
         minReqLeftLineGraphic[counter+1].lineStyle(2, minReqColor, 1);
         minReqLeftLineGraphic[counter+1].moveTo(minReqLeftHandler[counter+1].x, minReqLeftHandler[counter+1].y);//moving position of graphic if you draw mulitple lines
         minReqLeftLineGraphic[counter+1].lineTo(minReqRightHandler[counter].x, minReqRightHandler[counter].y);
+        minReqStaffLevelGroup.add(minReqLeftLineGraphic[counter+1]);
     }
     
     // attaching events to the handler
@@ -237,9 +404,117 @@ function createminRequiredHourBar( hourlyLevel, counter, minRequiredLevelsLength
 
     minReqStaffLevelGroup.add(minRequiredBar[counter]);
     minReqStaffLevelGroup.add(minReqCenterHandler[counter]);
+    minReqStaffLevelGroup.add(minReqLeftHandler[counter]);
+    minReqStaffLevelGroup.add(minReqRightHandler[counter]);
+    minReqStaffLevelGroup.add(minReqLeftLineGraphic[counter]);
+    minReqStaffLevelGroup.add(minReqMiddleLineGraphic[counter]);
 
 }
 
+
+function createmaxRequiredHourBar( hourlyLevel, counter, maxRequiredLevelsLength ){
+
+    // creating a bar sprite and positioning it according to maxRequired staff levels
+    maxRequiredBar[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'transparent');
+    maxRequiredBar[counter].height = hourlyLevel*10;
+    maxRequiredBar[counter].width = 30;
+    maxRequiredBar[counter].inputEnabled = true;
+    maxRequiredBar[counter].barName = "Bar-" + counter;
+    maxRequiredBar[counter].barId = counter;
+    //maxRequiredBar[counter].alpha = 0.8;
+
+    
+    // creating and aligning the handler to the maxRequire bar sprite
+    maxReqCenterHandler[counter] = game.add.sprite(counter*30 + 15, 250 - hourlyLevel*10, 'node');
+    maxReqCenterHandler[counter].maxReqCenterHandlerId = counter;
+    maxReqCenterHandler[counter].anchor.set(0.5);
+    maxReqCenterHandler[counter].scale.setTo(0.05);
+    maxReqCenterHandler[counter].inputEnabled = true;
+    maxReqCenterHandler[counter].input.allowHorizontalDrag = false;
+    maxReqCenterHandler[counter].input.enableDrag(false, true);
+    maxReqCenterHandler[counter].input.useHandCursor = true;
+    maxReqCenterHandler[counter].input.boundsRect = positiveBounds;
+    maxReqCenterHandler[counter].visible = false;
+
+    if(counter == 1){
+        maxReqRightHandler[counter-1] = game.add.sprite(30, 250, 'node');
+        maxReqRightHandler[counter-1].maxReqLeftHandlerId = counter-1;
+        maxReqRightHandler[counter-1].anchor.set(0.5);
+        maxReqRightHandler[counter-1].scale.setTo(0.04); 
+        maxReqRightHandler[counter-1].visible = false; 
+    }
+
+    // creating and aligning the handler to the maxRequire bar sprite
+    maxReqLeftHandler[counter] = game.add.sprite(counter*30, 250 - hourlyLevel*10, 'node');
+    maxReqLeftHandler[counter].maxReqLeftHandlerId = counter;
+    maxReqLeftHandler[counter].visible = false;
+    maxReqLeftHandler[counter].anchor.set(0.5);
+    maxReqLeftHandler[counter].scale.setTo(0.04);   
+
+    // creating and aligning the handler to the maxRequire bar sprite
+    maxReqRightHandler[counter] = game.add.sprite((counter+1)*30, 250 - hourlyLevel*10, 'node');
+    maxReqRightHandler[counter].maxReqRightHandlerId = counter;
+    maxReqRightHandler[counter].visible = false;
+    maxReqRightHandler[counter].anchor.set(0.5);
+    maxReqRightHandler[counter].scale.setTo(0.04);
+  
+    
+    maxReqLeftLine[counter] = new Phaser.Line(maxReqLeftHandler[counter].x, maxReqLeftHandler[counter].y, maxReqRightHandler[counter-1].x, maxReqRightHandler[counter-1].y);         
+    maxReqMiddleLine[counter] = new Phaser.Line(maxReqLeftHandler[counter].x, maxReqLeftHandler[counter].y, maxReqRightHandler[counter].x, maxReqRightHandler[counter].y);         
+    
+    maxReqLeftLineGraphic[counter]=game.add.graphics(0,0);
+    maxReqLeftLineGraphic[counter].lineStyle(2, maxReqColor, 1);
+    maxReqLeftLineGraphic[counter].moveTo(maxReqLeftHandler[counter].x, maxReqLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
+    maxReqLeftLineGraphic[counter].lineTo(maxReqRightHandler[counter-1].x, maxReqRightHandler[counter-1].y);
+
+    maxReqMiddleLineGraphic[counter]=game.add.graphics(0,0);
+    maxReqMiddleLineGraphic[counter].lineStyle(2, maxReqColor, 1);
+    maxReqMiddleLineGraphic[counter].moveTo(maxReqLeftHandler[counter].x, maxReqLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
+    maxReqMiddleLineGraphic[counter].lineTo(maxReqRightHandler[counter].x, maxReqRightHandler[counter].y);
+
+    if(counter ==  maxRequiredLevelsLength){
+        maxReqLeftHandler[counter+1] = game.add.sprite((counter+1)*30, 250, 'node');
+        maxReqLeftHandler[counter+1].maxReqLeftHandlerId = counter+1;
+        maxReqLeftHandler[counter+1].anchor.set(0.5);
+        maxReqLeftHandler[counter+1].scale.setTo(0.04); 
+        maxReqLeftHandler[counter+1].visible = false; 
+        maxReqLeftLine[counter+1] = new Phaser.Line(maxReqLeftHandler[counter+1].x, maxReqLeftHandler[counter+1].y, maxReqRightHandler[counter].x, maxReqRightHandler[counter].y);                   
+        maxReqLeftLineGraphic[counter+1]=game.add.graphics(0,0);
+        maxReqLeftLineGraphic[counter+1].lineStyle(2, maxReqColor, 1);
+        maxReqLeftLineGraphic[counter+1].moveTo(maxReqLeftHandler[counter+1].x, maxReqLeftHandler[counter+1].y);//moving position of graphic if you draw mulitple lines
+        maxReqLeftLineGraphic[counter+1].lineTo(maxReqRightHandler[counter].x, maxReqRightHandler[counter].y);
+        maxReqStaffLevelGroup.add(maxReqLeftLineGraphic[counter+1]);
+    }
+    
+    // attaching events to the handler
+    maxReqCenterHandler[counter].events.onDragStart.add(maxReqHandlerDragStart);
+    maxReqCenterHandler[counter].events.onDragUpdate.add(maxReqHandlerDragUpdate);
+    maxReqCenterHandler[counter].events.onDragStop.add(maxReqHandlerDragStop);
+    maxRequiredBar[counter].events.onInputOver.add(maxReqBarInputOver);
+    maxRequiredBar[counter].events.onInputOut.add(maxReqBarInputOut);
+
+    maxReqStaffLevelGroup.add(maxRequiredBar[counter]);
+    maxReqStaffLevelGroup.add(maxReqCenterHandler[counter]);
+    maxReqStaffLevelGroup.add(maxReqLeftHandler[counter]);
+    maxReqStaffLevelGroup.add(maxReqRightHandler[counter]);
+    maxReqStaffLevelGroup.add(maxReqLeftLineGraphic[counter]);
+    maxReqStaffLevelGroup.add(maxReqMiddleLineGraphic[counter]);
+
+}
+
+
+
+
+
+function availBarInputOver(bar, pointer) {    
+    //barId = bar.barId;
+    //availCenterHandler[barId].visible = true;
+}
+
+function availBarInputOut(bar, pointer) {
+    //barId = bar.barId;
+    //availCenterHandler[barId].visible = false;    
+}
 
 function minReqBarInputOver(bar, pointer) {    
     //barId = bar.barId;
@@ -251,6 +526,66 @@ function minReqBarInputOut(bar, pointer) {
     //minReqCenterHandler[barId].visible = false;    
 }
 
+function maxReqBarInputOver(bar, pointer) {    
+    //barId = bar.barId;
+    //maxReqCenterHandler[barId].visible = true;
+}
+
+function maxReqBarInputOut(bar, pointer) {
+    //barId = bar.barId;
+    //maxReqCenterHandler[barId].visible = false;    
+}
+
+
+
+function availHandlerDragStart(handler, pointer, x, y) {
+    
+    availHandlerStartYCoordinate = y;
+    availBarHeight =  availBar[availCenterHandlerId].height;
+}
+
+function availHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+    availCenterHandlerId = handler.availCenterHandlerId;
+    //console.log("availCenterHandlerId", availCenterHandlerId);
+    availDragDist = availHandlerStartYCoordinate - handler.y;
+    //console.log("availDragDist", availDragDist);
+    if(!isNaN(availDragDist)){
+        availBar[availCenterHandlerId].height = availBarHeight + Math.floor(availDragDist / 10) * 10;
+        availBar[availCenterHandlerId].y = (Math.ceil(handler.y / 10) * 10); 
+
+        availRightHandler[availCenterHandlerId].y = availLeftHandler[availCenterHandlerId].y = availBar[availCenterHandlerId].y;
+    
+        availLeftLine[availCenterHandlerId].fromSprite(availLeftHandler[availCenterHandlerId], availRightHandler[availCenterHandlerId-1], false);
+        availLeftLine[availCenterHandlerId+1].fromSprite(availLeftHandler[availCenterHandlerId+1], availRightHandler[availCenterHandlerId], false);
+        availMiddleLine[availCenterHandlerId].fromSprite(availLeftHandler[availCenterHandlerId], availRightHandler[availCenterHandlerId], false);
+        
+        availLeftLineGraphic[availCenterHandlerId].clear();
+        availLeftLineGraphic[availCenterHandlerId].lineStyle(2, availColor, 1);        
+        availLeftLineGraphic[availCenterHandlerId].moveTo(availLeftHandler[availCenterHandlerId].x, availLeftHandler[availCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
+        availLeftLineGraphic[availCenterHandlerId].lineTo(availRightHandler[availCenterHandlerId-1].x, availRightHandler[availCenterHandlerId-1].y);
+
+        availLeftLineGraphic[availCenterHandlerId+1].clear();
+        availLeftLineGraphic[availCenterHandlerId+1].lineStyle(2, availColor, 1);        
+        availLeftLineGraphic[availCenterHandlerId+1].moveTo(availLeftHandler[availCenterHandlerId+1].x, availLeftHandler[availCenterHandlerId+1].y);//moving position of graphic if you draw mulitple lines
+        availLeftLineGraphic[availCenterHandlerId+1].lineTo(availRightHandler[availCenterHandlerId].x, availRightHandler[availCenterHandlerId].y);
+
+        availMiddleLineGraphic[availCenterHandlerId].clear();
+        availMiddleLineGraphic[availCenterHandlerId].lineStyle(2, availColor, 1);
+        availMiddleLineGraphic[availCenterHandlerId].moveTo(availLeftHandler[availCenterHandlerId].x, availLeftHandler[availCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
+        availMiddleLineGraphic[availCenterHandlerId].lineTo(availRightHandler[availCenterHandlerId].x, availRightHandler[availCenterHandlerId].y);
+
+    }
+    indicateConflictAreas();
+}
+
+
+function availHandlerDragStop(handler, pointer) {
+
+    if(handler.y !== availBar[availCenterHandlerId].y){
+        handler.y = availBar[availCenterHandlerId].y;
+    }
+
+}
 
 function minReqHandlerDragStart(handler, pointer, x, y) {
     
@@ -299,6 +634,59 @@ function minReqHandlerDragStop(handler, pointer) {
     }
 
 }
+
+
+function maxReqHandlerDragStart(handler, pointer, x, y) {
+    
+    maxReqHandlerStartYCoordinate = y;
+    maxRequiredBarHeight =  maxRequiredBar[maxReqCenterHandlerId].height;
+}
+
+function maxReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+    maxReqCenterHandlerId = handler.maxReqCenterHandlerId;
+    //console.log("maxReqCenterHandlerId", maxReqCenterHandlerId);
+    maxReqDragDist = maxReqHandlerStartYCoordinate - handler.y;
+    //console.log("maxReqDragDist", maxReqDragDist);
+    if(!isNaN(maxReqDragDist)){
+        maxRequiredBar[maxReqCenterHandlerId].height = maxRequiredBarHeight + Math.floor(maxReqDragDist / 10) * 10;
+        maxRequiredBar[maxReqCenterHandlerId].y = (Math.ceil(handler.y / 10) * 10); 
+
+        maxReqRightHandler[maxReqCenterHandlerId].y = maxReqLeftHandler[maxReqCenterHandlerId].y = maxRequiredBar[maxReqCenterHandlerId].y;
+    
+        maxReqLeftLine[maxReqCenterHandlerId].fromSprite(maxReqLeftHandler[maxReqCenterHandlerId], maxReqRightHandler[maxReqCenterHandlerId-1], false);
+        maxReqLeftLine[maxReqCenterHandlerId+1].fromSprite(maxReqLeftHandler[maxReqCenterHandlerId+1], maxReqRightHandler[maxReqCenterHandlerId], false);
+        maxReqMiddleLine[maxReqCenterHandlerId].fromSprite(maxReqLeftHandler[maxReqCenterHandlerId], maxReqRightHandler[maxReqCenterHandlerId], false);
+        
+        maxReqLeftLineGraphic[maxReqCenterHandlerId].clear();
+        maxReqLeftLineGraphic[maxReqCenterHandlerId].lineStyle(2, maxReqColor, 1);        
+        maxReqLeftLineGraphic[maxReqCenterHandlerId].moveTo(maxReqLeftHandler[maxReqCenterHandlerId].x, maxReqLeftHandler[maxReqCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
+        maxReqLeftLineGraphic[maxReqCenterHandlerId].lineTo(maxReqRightHandler[maxReqCenterHandlerId-1].x, maxReqRightHandler[maxReqCenterHandlerId-1].y);
+
+        maxReqLeftLineGraphic[maxReqCenterHandlerId+1].clear();
+        maxReqLeftLineGraphic[maxReqCenterHandlerId+1].lineStyle(2, maxReqColor, 1);        
+        maxReqLeftLineGraphic[maxReqCenterHandlerId+1].moveTo(maxReqLeftHandler[maxReqCenterHandlerId+1].x, maxReqLeftHandler[maxReqCenterHandlerId+1].y);//moving position of graphic if you draw mulitple lines
+        maxReqLeftLineGraphic[maxReqCenterHandlerId+1].lineTo(maxReqRightHandler[maxReqCenterHandlerId].x, maxReqRightHandler[maxReqCenterHandlerId].y);
+
+        maxReqMiddleLineGraphic[maxReqCenterHandlerId].clear();
+        maxReqMiddleLineGraphic[maxReqCenterHandlerId].lineStyle(2, maxReqColor, 1);
+        maxReqMiddleLineGraphic[maxReqCenterHandlerId].moveTo(maxReqLeftHandler[maxReqCenterHandlerId].x, maxReqLeftHandler[maxReqCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
+        maxReqMiddleLineGraphic[maxReqCenterHandlerId].lineTo(maxReqRightHandler[maxReqCenterHandlerId].x, maxReqRightHandler[maxReqCenterHandlerId].y);
+
+    }
+}
+
+
+function maxReqHandlerDragStop(handler, pointer) {
+
+    if(handler.y !== maxRequiredBar[maxReqCenterHandlerId].y){
+        handler.y = maxRequiredBar[maxReqCenterHandlerId].y;
+    }
+
+}
+
+
+
+
 
 function update() {
 
@@ -357,8 +745,108 @@ function createScale() {
     }
 
 }
-$('p').click(function(){
-   // minReqCenterHandler[2].y = 100;
+
+
+function indicateConflictAreas(){
+
+    var loopCounter = 1;
+    for (var eachHour in shiftData.availableLevels) {
+        if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
+            y1 = shiftData.minRequiredLevels[eachHour] * 10;    // y coordinate of reqLevels 
+            y2 = shiftData.availableLevels[eachHour] * 10;      // y coordinate of availableLevels
+
+            if(y1 > y2){
+                x1 = loopCounter * hourScale;    //x coordinate of the Hour Bar (same for both levels)
+                x2 = (loopCounter+1) * hourScale;    //(x coordinate + width) of the Hour Bar (same for both levels)
+                
+                underStaffPolygon[loopCounter] = new Phaser.Polygon();
+                underStaffPolygon[loopCounter].setTo([
+                    {x: x1, y: yAxisRef - y1 },
+                    {x: x2, y: yAxisRef - y1 },
+                    {x: x2, y: yAxisRef - y2 },
+                    {x: x1, y: yAxisRef - y2 },                   
+                ]);
+                //console.log( underStaffPolygon[loopCounter]);
+                underStaffGraphic[loopCounter] = game.add.graphics(0, 0);
+                //underStaffGraphic[loopCounter].lineStyle(2, 0xcacacb);
+                underStaffGraphic[loopCounter].beginFill(0X9c1003);
+                underStaffGraphic[loopCounter].drawPolygon(underStaffPolygon[loopCounter].points);
+                //underStaffGraphic[loopCounter].alpha = 0.5;
+                underStaffGraphic[loopCounter].endFill();
+                polygonGroup.add(underStaffGraphic[loopCounter]); 
+            }
+              
+        }
+        if (shiftData.maxRequiredLevels.hasOwnProperty(eachHour)) {
+            y1 = shiftData.maxRequiredLevels[eachHour] * 10;    // y coordinate of reqLevels 
+            y2 = shiftData.availableLevels[eachHour] * 10;      // y coordinate of availableLevels
+
+            if(y1 < y2){
+                x1 = loopCounter * hourScale;    //x coordinate of the Hour Bar (same for both levels)
+                x2 = (loopCounter+1) * hourScale;    //(x coordinate + width) of the Hour Bar (same for both levels)
+                
+                overStaffPolygon[loopCounter] = new Phaser.Polygon();
+                overStaffPolygon[loopCounter].setTo([
+                    {x: x1, y: yAxisRef - y1 },
+                    {x: x2, y: yAxisRef - y1 },
+                    {x: x2, y: yAxisRef - y2 },
+                    {x: x1, y: yAxisRef - y2 },                   
+                ]);
+                overStaffGraphic[loopCounter] = game.add.graphics(0, 0);
+                //overStaffGraphic[loopCounter].lineStyle(2, 0xcacacb);
+                overStaffGraphic[loopCounter].beginFill(0xe3da7d);
+                overStaffGraphic[loopCounter].drawPolygon(overStaffPolygon[loopCounter].points);
+                //overStaffGraphic[loopCounter].alpha = 0.4;
+                overStaffGraphic[loopCounter].endFill();
+                polygonGroup.add(overStaffGraphic[loopCounter]); 
+            }
+              
+        }        
+                        
+            loopCounter++;
+    } 
+}
+
+
+$('.onTopSelect').on('change',function(){
+    //minReqStaffLevelGroup.visible = false;
+    activeGroup = this.value;
+    switch(activeGroup) {
+        case "avail":
+            game.world.bringToTop(availStaffLevelGroup);
+            for (var i in availCenterHandler) {
+                minReqCenterHandler[i].visible = false;
+                maxReqCenterHandler[i].visible = false;
+                availCenterHandler[i].visible = true;
+            }
+            break;
+        case "minReq":
+            game.world.bringToTop(minReqStaffLevelGroup);
+            for (var i in minReqCenterHandler) {
+                minReqCenterHandler[i].visible = true;
+                maxReqCenterHandler[i].visible = false;
+                availCenterHandler[i].visible = false;
+            }            
+            break;
+        case "maxReq":
+            game.world.bringToTop(maxReqStaffLevelGroup);
+            for (var i in maxReqCenterHandler) {
+                minReqCenterHandler[i].visible = false;
+                maxReqCenterHandler[i].visible = true;
+                availCenterHandler[i].visible = false;
+            } 
+            break;            
+        default:
+            game.world.bringToTop(availStaffLevelGroup);
+            game.world.bringToTop(minReqStaffLevelGroup);
+            game.world.bringToTop(maxReqStaffLevelGroup);
+            game.world.bringToTop(polygonGroup);
+            for (var i in maxReqCenterHandler) {
+                minReqCenterHandler[i].visible = false;
+                maxReqCenterHandler[i].visible = false;
+                availCenterHandler[i].visible = false;
+            } 
+    }
 });
 
 </script>
