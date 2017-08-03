@@ -28,6 +28,7 @@
     <option value = "avail" >Available</option>
     <option value = "minReq" >MinRequired</option>
     <option value = "maxReq" >MaxRequired</option>
+    <option value = "sick" >Sick</option>
 </select>
 
 <script type="text/javascript">
@@ -115,7 +116,33 @@ var shiftData = {
         "21 - 22" : 10,
         "22 - 23" : 11,
         "23 - 24" : 11,
-    }            
+    },      
+    "sickLevels": {
+        "0 - 1" : 0,
+        "1 - 2" : 0,
+        "2 - 3" : 0,
+        "3 - 4" : 0,
+        "4 - 5" : 5,
+        "5 - 6" : 5,
+        "6 - 7" : 5,
+        "7 - 8" : 5,
+        "8 - 9" : 5,
+        "9 - 10" : 0,
+        "10 - 11" : 0,
+        "11 - 12" : 6,
+        "12 - 13" : 4,
+        "13 - 14" : 0,
+        "14 - 15" : 3,
+        "15 - 16" : 4,
+        "16 - 17" : 0,
+        "17 - 18" : 0,
+        "18 - 19" : 0,
+        "19 - 20" : 0,
+        "20 - 21" : 0,
+        "21 - 22" : 0,
+        "22 - 23" : 0,
+        "23 - 24" : 0
+    }                
 }
 
 //common vars
@@ -130,6 +157,8 @@ var overStaffPolygon = [];
 var underStaffGraphic = [];
 var overStaffGraphic = [];
 var polygonGroup;
+var positiveBounds;
+var negativeBounds;
 
 // minRequiredLevels vars
 var minReqColor = 0x557d1d;
@@ -182,17 +211,45 @@ var availMiddleLineGraphic = [];
 var availStaffLevelGroup;
 var availableLevelsLength = Object.keys(shiftData.availableLevels).length;
 
+// sickLevels vars
+var sickColor = 0xade1f7;
+var sickHandlerStartYCoordinate;
+var sickCenterHandlerId;
+var sickDragDist;
+var sickBarHeight;
+var sickBar = [];
+var sickCenterHandler = [];
+var sickLeftHandler = [];
+var sickRightHandler = [];
+var sickLeftLine = [];
+var sickMiddleLine = [];
+var sickLeftLineGraphic = [];
+var sickMiddleLineGraphic = [];
+var sickStaffLevelGroup;
+var sickLevelsLength = Object.keys(shiftData.sickLevels).length;
+
 
 function preload() {
     game.load.image('greyImage', 'assets/greyImage.jpg');
     game.load.image('transparent', 'assets/transparent.png');
     game.load.image('node', 'assets/circle_blue.png');
+    game.load.image('sky', 'assets/sky.png');
 }
 
 function create() {
     game.stage.backgroundColor = '#ffffff';
-
     positiveBounds = new Phaser.Rectangle(xAxisRef, 00, 720, yAxisRef); 
+    negativeBounds = new Phaser.Rectangle(xAxisRef, yAxisRef-4, 720, yAxisRef-10); 
+
+    loopCounter = 1;
+    sickStaffLevelGroup = game.add.group();
+    // loop to iterate over sick staff levels for each hour 
+    for (var eachHour in shiftData.sickLevels) {
+        if (shiftData.sickLevels.hasOwnProperty(eachHour)) {
+            createSickHourBar(shiftData.sickLevels[eachHour], loopCounter, sickLevelsLength);
+            loopCounter++;
+        }
+    }        
 
     loopCounter = 1;
     availStaffLevelGroup = game.add.group();
@@ -222,7 +279,8 @@ function create() {
             createmaxRequiredHourBar(shiftData.maxRequiredLevels[eachHour], loopCounter, maxRequiredLevelsLength);
             loopCounter++;
         }
-    }        
+    }
+   
     polygonGroup = game.add.group();
     createScale();
     indicateConflictAreas();    
@@ -466,12 +524,12 @@ function createmaxRequiredHourBar( hourlyLevel, counter, maxRequiredLevelsLength
     maxReqLeftLine[counter] = new Phaser.Line(maxReqLeftHandler[counter].x, maxReqLeftHandler[counter].y, maxReqRightHandler[counter-1].x, maxReqRightHandler[counter-1].y);         
     maxReqMiddleLine[counter] = new Phaser.Line(maxReqLeftHandler[counter].x, maxReqLeftHandler[counter].y, maxReqRightHandler[counter].x, maxReqRightHandler[counter].y);         
     
-    maxReqLeftLineGraphic[counter]=game.add.graphics(0,0);
+    maxReqLeftLineGraphic[counter] = game.add.graphics(0,0);
     maxReqLeftLineGraphic[counter].lineStyle(2, maxReqColor, 1);
     maxReqLeftLineGraphic[counter].moveTo(maxReqLeftHandler[counter].x, maxReqLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
     maxReqLeftLineGraphic[counter].lineTo(maxReqRightHandler[counter-1].x, maxReqRightHandler[counter-1].y);
 
-    maxReqMiddleLineGraphic[counter]=game.add.graphics(0,0);
+    maxReqMiddleLineGraphic[counter] = game.add.graphics(0,0);
     maxReqMiddleLineGraphic[counter].lineStyle(2, maxReqColor, 1);
     maxReqMiddleLineGraphic[counter].moveTo(maxReqLeftHandler[counter].x, maxReqLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
     maxReqMiddleLineGraphic[counter].lineTo(maxReqRightHandler[counter].x, maxReqRightHandler[counter].y);
@@ -483,7 +541,7 @@ function createmaxRequiredHourBar( hourlyLevel, counter, maxRequiredLevelsLength
         maxReqLeftHandler[counter+1].scale.setTo(0.04); 
         maxReqLeftHandler[counter+1].visible = false; 
         maxReqLeftLine[counter+1] = new Phaser.Line(maxReqLeftHandler[counter+1].x, maxReqLeftHandler[counter+1].y, maxReqRightHandler[counter].x, maxReqRightHandler[counter].y);                   
-        maxReqLeftLineGraphic[counter+1]=game.add.graphics(0,0);
+        maxReqLeftLineGraphic[counter+1] = game.add.graphics(0,0);
         maxReqLeftLineGraphic[counter+1].lineStyle(2, maxReqColor, 1);
         maxReqLeftLineGraphic[counter+1].moveTo(maxReqLeftHandler[counter+1].x, maxReqLeftHandler[counter+1].y);//moving position of graphic if you draw mulitple lines
         maxReqLeftLineGraphic[counter+1].lineTo(maxReqRightHandler[counter].x, maxReqRightHandler[counter].y);
@@ -506,6 +564,96 @@ function createmaxRequiredHourBar( hourlyLevel, counter, maxRequiredLevelsLength
 
 }
 
+function createSickHourBar( hourlyLevel, counter, sickLevelsLength ){
+
+
+    // creating a bar sprite and positioning it according to sick staff levels
+    sickBar[counter] = game.add.sprite(xAxisRef + ((counter-1)*30), yAxisRef, 'sky');
+    sickBar[counter].height = hourlyLevel*10;
+    sickBar[counter].width = 30;
+    sickBar[counter].inputEnabled = true;
+    sickBar[counter].barName = "Bar-" + counter;
+    sickBar[counter].barId = counter;
+    sickBar[counter].alpha = 0.8;
+
+    
+    // creating and aligning the handler to the sick bar sprite
+    sickCenterHandler[counter] = game.add.sprite(xAxisRef + ((counter-1)*30) + 15, yAxisRef + hourlyLevel*10, 'node');
+    sickCenterHandler[counter].sickCenterHandlerId = counter;
+    sickCenterHandler[counter].anchor.set(0.5);
+    sickCenterHandler[counter].scale.setTo(0.05);
+    sickCenterHandler[counter].inputEnabled = true;
+    sickCenterHandler[counter].input.allowHorizontalDrag = false;
+    sickCenterHandler[counter].input.enableDrag(false, true);
+    sickCenterHandler[counter].input.useHandCursor = true;
+    sickCenterHandler[counter].input.boundsRect = negativeBounds;
+    sickCenterHandler[counter].visible = false;
+
+    if(counter == 1){
+        sickRightHandler[counter-1] = game.add.sprite(xAxisRef, yAxisRef, 'node');
+        sickRightHandler[counter-1].sickLeftHandlerId = counter-1;
+        sickRightHandler[counter-1].anchor.set(0.5);
+        sickRightHandler[counter-1].scale.setTo(0.04); 
+        sickRightHandler[counter-1].visible = false; 
+    }
+
+    // creating and aligning the handler to the sick bar sprite
+    sickLeftHandler[counter] = game.add.sprite(xAxisRef + ((counter-1)*30), yAxisRef + hourlyLevel*10, 'node');
+    sickLeftHandler[counter].sickLeftHandlerId = counter;
+    sickLeftHandler[counter].visible = false;
+    sickLeftHandler[counter].anchor.set(0.5);
+    sickLeftHandler[counter].scale.setTo(0.04);   
+
+    // creating and aligning the handler to the sick bar sprite
+    sickRightHandler[counter] = game.add.sprite(xAxisRef + ((counter)*30), yAxisRef + hourlyLevel*10, 'node');
+    sickRightHandler[counter].sickRightHandlerId = counter;
+    sickRightHandler[counter].visible = false;
+    sickRightHandler[counter].anchor.set(0.5);
+    sickRightHandler[counter].scale.setTo(0.04);
+  
+    
+    sickLeftLine[counter] = new Phaser.Line(sickLeftHandler[counter].x, sickLeftHandler[counter].y, sickRightHandler[counter-1].x, sickRightHandler[counter-1].y);         
+    sickMiddleLine[counter] = new Phaser.Line(sickLeftHandler[counter].x, sickLeftHandler[counter].y, sickRightHandler[counter].x, sickRightHandler[counter].y);         
+    
+    sickLeftLineGraphic[counter]=game.add.graphics(0,0);
+    sickLeftLineGraphic[counter].lineStyle(2, sickColor, 1);
+    sickLeftLineGraphic[counter].moveTo(sickLeftHandler[counter].x, sickLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
+    sickLeftLineGraphic[counter].lineTo(sickRightHandler[counter-1].x, sickRightHandler[counter-1].y);
+
+    sickMiddleLineGraphic[counter]=game.add.graphics(0,0);
+    sickMiddleLineGraphic[counter].lineStyle(2, sickColor, 1);
+    sickMiddleLineGraphic[counter].moveTo(sickLeftHandler[counter].x, sickLeftHandler[counter].y);//moving position of graphic if you draw mulitple lines
+    sickMiddleLineGraphic[counter].lineTo(sickRightHandler[counter].x, sickRightHandler[counter].y);
+
+    if(counter ==  sickLevelsLength){
+        sickLeftHandler[counter+1] = game.add.sprite(xAxisRef + ((counter)*30), yAxisRef, 'node');
+        sickLeftHandler[counter+1].sickLeftHandlerId = counter+1;
+        sickLeftHandler[counter+1].anchor.set(0.5);
+        sickLeftHandler[counter+1].scale.setTo(0.04); 
+        sickLeftHandler[counter+1].visible = false; 
+        sickLeftLine[counter+1] = new Phaser.Line(sickLeftHandler[counter+1].x, sickLeftHandler[counter+1].y, sickRightHandler[counter].x, sickRightHandler[counter].y);                   
+        sickLeftLineGraphic[counter+1]=game.add.graphics(0,0);
+        sickLeftLineGraphic[counter+1].lineStyle(2, sickColor, 1);
+        sickLeftLineGraphic[counter+1].moveTo(sickLeftHandler[counter+1].x, sickLeftHandler[counter+1].y);//moving position of graphic if you draw mulitple lines
+        sickLeftLineGraphic[counter+1].lineTo(sickRightHandler[counter].x, sickRightHandler[counter].y);
+        sickStaffLevelGroup.add(sickLeftLineGraphic[counter+1]);
+    }
+    
+    // attaching events to the handler
+    sickCenterHandler[counter].events.onDragStart.add(sickHandlerDragStart);
+    sickCenterHandler[counter].events.onDragUpdate.add(sickHandlerDragUpdate);
+    sickCenterHandler[counter].events.onDragStop.add(sickHandlerDragStop);
+    sickBar[counter].events.onInputOver.add(sickBarInputOver);
+    sickBar[counter].events.onInputOut.add(sickBarInputOut);
+
+    sickStaffLevelGroup.add(sickBar[counter]);
+    sickStaffLevelGroup.add(sickCenterHandler[counter]);
+    sickStaffLevelGroup.add(sickLeftHandler[counter]);
+    sickStaffLevelGroup.add(sickRightHandler[counter]);
+    sickStaffLevelGroup.add(sickLeftLineGraphic[counter]);
+    sickStaffLevelGroup.add(sickMiddleLineGraphic[counter]);
+
+}
 
 
 
@@ -539,6 +687,20 @@ function maxReqBarInputOut(bar, pointer) {
     //barId = bar.barId;
     //maxReqCenterHandler[barId].visible = false;    
 }
+
+function sickBarInputOver(bar, pointer) {    
+    //barId = bar.barId;
+    //sickCenterHandler[barId].visible = true;
+}
+
+function sickBarInputOut(bar, pointer) {
+    //barId = bar.barId;
+    //sickCenterHandler[barId].visible = false;    
+}
+
+
+
+
 
 
 
@@ -690,7 +852,54 @@ function maxReqHandlerDragStop(handler, pointer) {
 }
 
 
+function sickHandlerDragStart(handler, pointer, x, y) {
+    
+    sickHandlerStartYCoordinate = y;
+    sickBarHeight =  sickBar[sickCenterHandlerId].height;
+}
 
+function sickHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+    sickCenterHandlerId = handler.sickCenterHandlerId;
+    //console.log("sickCenterHandlerId", sickCenterHandlerId);
+    sickDragDist = sickHandlerStartYCoordinate - handler.y;
+    //console.log("sickDragDist", sickDragDist);
+    if(!isNaN(sickDragDist)){
+        sickBar[sickCenterHandlerId].height = sickBarHeight - Math.floor(sickDragDist / 10) * 10;
+        sickBar[sickCenterHandlerId].y = yAxisRef; 
+
+        sickRightHandler[sickCenterHandlerId].y = sickLeftHandler[sickCenterHandlerId].y = sickBar[sickCenterHandlerId].bottom;
+    
+        sickLeftLine[sickCenterHandlerId].fromSprite(sickLeftHandler[sickCenterHandlerId], sickRightHandler[sickCenterHandlerId-1], false);
+        sickLeftLine[sickCenterHandlerId+1].fromSprite(sickLeftHandler[sickCenterHandlerId+1], sickRightHandler[sickCenterHandlerId], false);
+        sickMiddleLine[sickCenterHandlerId].fromSprite(sickLeftHandler[sickCenterHandlerId], sickRightHandler[sickCenterHandlerId], false);
+        
+        sickLeftLineGraphic[sickCenterHandlerId].clear();
+        sickLeftLineGraphic[sickCenterHandlerId].lineStyle(2, sickColor, 1);        
+        sickLeftLineGraphic[sickCenterHandlerId].moveTo(sickLeftHandler[sickCenterHandlerId].x, sickLeftHandler[sickCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
+        sickLeftLineGraphic[sickCenterHandlerId].lineTo(sickRightHandler[sickCenterHandlerId-1].x, sickRightHandler[sickCenterHandlerId-1].y);
+
+        sickLeftLineGraphic[sickCenterHandlerId+1].clear();
+        sickLeftLineGraphic[sickCenterHandlerId+1].lineStyle(2, sickColor, 1);        
+        sickLeftLineGraphic[sickCenterHandlerId+1].moveTo(sickLeftHandler[sickCenterHandlerId+1].x, sickLeftHandler[sickCenterHandlerId+1].y);//moving position of graphic if you draw mulitple lines
+        sickLeftLineGraphic[sickCenterHandlerId+1].lineTo(sickRightHandler[sickCenterHandlerId].x, sickRightHandler[sickCenterHandlerId].y);
+
+        sickMiddleLineGraphic[sickCenterHandlerId].clear();
+        sickMiddleLineGraphic[sickCenterHandlerId].lineStyle(2, sickColor, 1);
+        sickMiddleLineGraphic[sickCenterHandlerId].moveTo(sickLeftHandler[sickCenterHandlerId].x, sickLeftHandler[sickCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
+        sickMiddleLineGraphic[sickCenterHandlerId].lineTo(sickRightHandler[sickCenterHandlerId].x, sickRightHandler[sickCenterHandlerId].y);
+    }
+
+}
+
+
+function sickHandlerDragStop(handler, pointer) {
+
+    if(handler.y !== sickBar[sickCenterHandlerId].bottom){
+        handler.y = sickBar[sickCenterHandlerId].bottom;
+    }
+    //updateConflictArea(sickCenterHandlerId);
+
+}
 
 
 function update() {
@@ -702,7 +911,7 @@ function render() {
     // // loop to iterate over minRequired staff levels for each hour 
     // for (var eachHour in shiftData.minRequiredLevels) {
     //     if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
-    //          game.debug.geom(minReqLeftLine[counter]);
+              //game.debug.geom(minReqLeftLine[counter]);
     //         game.debug.geom(minReqMiddleLine[counter]);
     //         if(counter ==  minRequiredLevelsLength){
     //             game.debug.geom(minReqLeftLine[counter+1]);
@@ -891,24 +1100,41 @@ $('.onTopSelect').on('change',function(){
                 minReqCenterHandler[i].visible = false;
                 maxReqCenterHandler[i].visible = false;
                 availCenterHandler[i].visible = true;
+                sickCenterHandler[i].visible = false;
             }
             break;
+
         case "minReq":
             game.world.bringToTop(minReqStaffLevelGroup);
             for (var i in minReqCenterHandler) {
                 minReqCenterHandler[i].visible = true;
                 maxReqCenterHandler[i].visible = false;
                 availCenterHandler[i].visible = false;
+                sickCenterHandler[i].visible = false;
             }            
             break;
+
         case "maxReq":
             game.world.bringToTop(maxReqStaffLevelGroup);
             for (var i in maxReqCenterHandler) {
                 minReqCenterHandler[i].visible = false;
                 maxReqCenterHandler[i].visible = true;
                 availCenterHandler[i].visible = false;
+                sickCenterHandler[i].visible = false;
             } 
-            break;            
+            break;
+
+        case "sick":
+            game.world.bringToTop(sickStaffLevelGroup);
+            for (var i in sickCenterHandler) {
+                minReqCenterHandler[i].visible = false;
+                maxReqCenterHandler[i].visible = false;
+                availCenterHandler[i].visible = false;
+                sickCenterHandler[i].visible = true;
+
+            } 
+            break;                         
+
         default:
             game.world.bringToTop(availStaffLevelGroup);
             game.world.bringToTop(minReqStaffLevelGroup);
@@ -918,6 +1144,7 @@ $('.onTopSelect').on('change',function(){
                 minReqCenterHandler[i].visible = false;
                 maxReqCenterHandler[i].visible = false;
                 availCenterHandler[i].visible = false;
+                sickCenterHandler[i].visible = false;
             } 
     }
 });
