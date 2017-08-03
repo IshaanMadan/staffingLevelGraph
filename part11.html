@@ -34,6 +34,8 @@
 
 var game = new Phaser.Game(800, 400, Phaser.AUTO, '', { preload: preload, create: create, update: update, render: render });
 
+//shift data object
+
 var shiftData = {
     "shiftScale": 1,
     "availableLevels": {
@@ -115,8 +117,8 @@ var shiftData = {
         "23 - 24" : 11,
     }            
 }
-//common vars
 
+//common vars
 var xScaleText = [];
 var yScaleTextPositive = [];
 var yScaleTextNegative = [];
@@ -190,7 +192,7 @@ function preload() {
 function create() {
     game.stage.backgroundColor = '#ffffff';
 
-    positiveBounds = new Phaser.Rectangle(30, 00, 720, yAxisRef); 
+    positiveBounds = new Phaser.Rectangle(xAxisRef, 00, 720, yAxisRef); 
 
     loopCounter = 1;
     availStaffLevelGroup = game.add.group();
@@ -224,9 +226,6 @@ function create() {
     polygonGroup = game.add.group();
     createScale();
     indicateConflictAreas();    
-
-       test = game.add.sprite(xAxisRef , yAxisRef,'node');
-       test.scale.setTo(0.05);
 }
 
 
@@ -588,6 +587,7 @@ function availHandlerDragStop(handler, pointer) {
     if(handler.y !== availBar[availCenterHandlerId].y){
         handler.y = availBar[availCenterHandlerId].y;
     }
+    updateConflictArea(availCenterHandlerId);
 
 }
 
@@ -636,6 +636,7 @@ function minReqHandlerDragStop(handler, pointer) {
     if(handler.y !== minRequiredBar[minReqCenterHandlerId].y){
         handler.y = minRequiredBar[minReqCenterHandlerId].y;
     }
+    updateConflictArea(minReqCenterHandlerId)
 
 }
 
@@ -685,7 +686,7 @@ function maxReqHandlerDragStop(handler, pointer) {
     if(handler.y !== maxRequiredBar[maxReqCenterHandlerId].y){
         handler.y = maxRequiredBar[maxReqCenterHandlerId].y;
     }
-
+    updateConflictArea(maxReqCenterHandlerId)
 }
 
 
@@ -810,6 +811,73 @@ function indicateConflictAreas(){
                         
             loopCounter++;
     } 
+}
+
+function updateConflictArea(counter){
+
+    console.log("in updateConflictArea");
+    polygonExists = false;
+    if(typeof underStaffGraphic[counter] !== "undefined"){
+        underStaffGraphic[counter].clear();
+    }
+
+    if(typeof overStaffGraphic[counter] !== "undefined"){
+        overStaffGraphic[counter].clear();
+    }
+
+    let availBarY = availBar[counter].y;
+    let availBarX = availBar[counter].x;
+    let minReqBarY = minRequiredBar[counter].y;
+    let minReqBarX = minRequiredBar[counter].x;
+    let maxReqBarY = maxRequiredBar[counter].y;
+    let maxReqBarX = maxRequiredBar[counter].x;
+    let conflict;
+
+    if(availBarY > minReqBarY){
+        conflict = "underStaff";
+    }
+    else if(availBarY < maxReqBarY){
+        conflict = "overStaff";
+    }
+    else{
+        conflict =  null;
+    }
+
+    switch(conflict) {
+        case "underStaff":
+            underStaffPolygon[counter] = new Phaser.Polygon();
+            underStaffPolygon[counter].setTo([
+            {x: availBarX, y: availBarY },
+            {x: availBarX + hourScale, y: availBarY },
+            {x: minReqBarX + hourScale, y: minReqBarY },
+            {x: minReqBarX, y: minReqBarY },                   
+            ]);
+            underStaffGraphic[counter] = game.add.graphics(0, 0);
+            underStaffGraphic[counter].beginFill(0X9c1003);
+            underStaffGraphic[counter].drawPolygon(underStaffPolygon[counter].points);
+            underStaffGraphic[counter].endFill();
+            polygonGroup.add(underStaffGraphic[counter]);
+            break;
+             
+        case "overStaff":
+            overStaffPolygon[counter] = new Phaser.Polygon();
+            overStaffPolygon[counter].setTo([
+            {x: availBarX, y: availBarY },
+            {x: availBarX + hourScale, y: availBarY },
+            {x: maxReqBarX + hourScale, y: maxReqBarY },
+            {x: maxReqBarX, y: maxReqBarY },                   
+            ]);
+            console.log(overStaffPolygon[counter]);
+            overStaffGraphic[counter] = game.add.graphics(0, 0);
+            overStaffGraphic[counter].beginFill(0xe3da7d);
+            overStaffGraphic[counter].drawPolygon(overStaffPolygon[counter].points);
+            overStaffGraphic[counter].endFill();    
+            polygonGroup.add(overStaffGraphic[counter]);             
+            break;
+
+        default:
+
+    }    
 }
 
 
