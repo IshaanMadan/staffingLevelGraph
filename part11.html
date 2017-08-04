@@ -739,6 +739,8 @@ function availHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
         availMiddleLineGraphic[availCenterHandlerId].lineStyle(2, availColor, 1);
         availMiddleLineGraphic[availCenterHandlerId].moveTo(availLeftHandler[availCenterHandlerId].x, availLeftHandler[availCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
         availMiddleLineGraphic[availCenterHandlerId].lineTo(availRightHandler[availCenterHandlerId].x, availRightHandler[availCenterHandlerId].y);
+    
+        updateConflictArea(availCenterHandlerId);
     }
 
 }
@@ -749,7 +751,7 @@ function availHandlerDragStop(handler, pointer) {
     if(handler.y !== availBar[availCenterHandlerId].y){
         handler.y = availBar[availCenterHandlerId].y;
     }
-    updateConflictArea(availCenterHandlerId);
+
 
 }
 
@@ -789,6 +791,7 @@ function minReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) 
         minReqMiddleLineGraphic[minReqCenterHandlerId].moveTo(minReqLeftHandler[minReqCenterHandlerId].x, minReqLeftHandler[minReqCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
         minReqMiddleLineGraphic[minReqCenterHandlerId].lineTo(minReqRightHandler[minReqCenterHandlerId].x, minReqRightHandler[minReqCenterHandlerId].y);
 
+        updateConflictArea(minReqCenterHandlerId)    
     }
 }
 
@@ -798,7 +801,6 @@ function minReqHandlerDragStop(handler, pointer) {
     if(handler.y !== minRequiredBar[minReqCenterHandlerId].y){
         handler.y = minRequiredBar[minReqCenterHandlerId].y;
     }
-    updateConflictArea(minReqCenterHandlerId)
 
 }
 
@@ -839,6 +841,7 @@ function maxReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) 
         maxReqMiddleLineGraphic[maxReqCenterHandlerId].moveTo(maxReqLeftHandler[maxReqCenterHandlerId].x, maxReqLeftHandler[maxReqCenterHandlerId].y);//moving position of graphic if you draw mulitple lines
         maxReqMiddleLineGraphic[maxReqCenterHandlerId].lineTo(maxReqRightHandler[maxReqCenterHandlerId].x, maxReqRightHandler[maxReqCenterHandlerId].y);
 
+        updateConflictArea(maxReqCenterHandlerId)
     }
 }
 
@@ -848,7 +851,7 @@ function maxReqHandlerDragStop(handler, pointer) {
     if(handler.y !== maxRequiredBar[maxReqCenterHandlerId].y){
         handler.y = maxRequiredBar[maxReqCenterHandlerId].y;
     }
-    updateConflictArea(maxReqCenterHandlerId)
+    
 }
 
 
