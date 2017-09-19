@@ -41,21 +41,42 @@
 		var shiftData = {
 			"shiftScale": 1,
 			"myShift": [{
-				"startTime": {
-					"hour": 12,
-					"minutes": 0,
+					"id": 210,
+					"editable": true,
+					"startTime": {
+						"hour": 12,
+						"minutes": 0,
+					},
+					"endTime": {
+						"hour": 16,
+						"minutes": 3,
+					},
+					"startStopBrick": {
+						"duration": 2
+					},
+					"endStopBrick": {
+						"duration": 2
+					}
 				},
-				"endTime": {
-					"hour": 16,
-					"minutes": 3,
-				},
-				"startStopBrick": {
-					"duration": 2
-				},
-				"endStopBrick": {
-					"duration": 2
+				{
+					"id": 220,
+					"editable": false,
+					"startTime": {
+						"hour": 2,
+						"minutes": 0,
+					},
+					"endTime": {
+						"hour": 7,
+						"minutes": 1,
+					},
+					"startStopBrick": {
+						"duration": 2
+					},
+					"endStopBrick": {
+						"duration": 2
+					}
 				}
-			}],
+			],
 			"availableLevels": {
 				"0 - 1": 8,
 				"1 - 2": 3,
@@ -187,7 +208,7 @@
 			var loopCounter;
 			var xAxis;
 			var yAxis;
-			var hourGranularity = 4; // must be 1, 2 or 4 
+			var hourGranularity = 2; // must be 1, 2, 4 or 12 
 
 
 			// myShift vars
@@ -195,6 +216,8 @@
 			var shiftBarLeftHandlers = [];
 			var shiftBarRightHandlers = [];
 			var shiftBarOnClickIntitialXPosition;
+			var shiftHandlersWidth = 10;
+			var minimumShiftLength = xAxisBarWidth / 4;
 
 			// minRequiredLevels vars
 			var minReqColor = 0x557d1d;
@@ -285,7 +308,8 @@
 
 		function create() {
 			game.stage.backgroundColor = '#ffffff';
-			positiveBounds = new Phaser.Rectangle(xAxisRef, parseInt('00', 10), 24 * xAxisBarWidth + 10, yAxisRef);
+			//game.canvas.style.cursor = 'url(./assets/circle_blue.png),auto';
+			positiveBounds = new Phaser.Rectangle(xAxisRef, parseInt('00', 10), 24 * xAxisBarWidth + 5, yAxisRef);
 			negativeBounds = new Phaser.Rectangle(xAxisRef, yAxisRef - 4, 24 * xAxisBarWidth + 10, yAxisRef - barHeightScale);
 			loopCounter = 1;
 			sickStaffLevelGroup = game.add.group();
@@ -335,59 +359,66 @@
 
 		function createMyShiftBar(myShiftData) {
 			let counter = 1;
-			let granularWidth = xAxisBarWidth/hourGranularity;
+			let granularWidth = xAxisBarWidth / hourGranularity;
 			myShiftData.forEach((shift) => {
-				myShiftbars[counter] = game.add.sprite(xAxisRef + ((shift.startTime.hour) * xAxisBarWidth) + ((shift.startTime.minutes) * granularWidth), yAxisRef - barHeightScale -
+				myShiftbars[counter] = game.add.sprite(xAxisRef + ((shift.startTime.hour) * xAxisBarWidth) + ((shift.startTime.minutes) *
+						granularWidth), yAxisRef - barHeightScale -
 					11, 'shiftImage');
 				myShiftbars[counter].inputEnabled = true;
-				myShiftbars[counter].width = ((shift.endTime.hour - shift.startTime.hour) * xAxisBarWidth) + ((shift.endTime.minutes) * granularWidth) - ((shift.startTime.minutes) * granularWidth);
+				myShiftbars[counter].width = ((shift.endTime.hour - shift.startTime.hour) * xAxisBarWidth) + ((shift.endTime.minutes) *
+					granularWidth) - ((shift.startTime.minutes) * granularWidth);
 				myShiftbars[counter].height = barHeightScale + 10;
+				myShiftbars[counter].shiftId = shift.id;
 				myShiftbars[counter].counterVal = counter;
-				myShiftbars[counter].input.allowVerticalDrag = false;
-				myShiftbars[counter].input.enableDrag(false, false);
 				myShiftbars[counter].alpha = 0.8;
-				myShiftbars[counter].input.boundsRect = positiveBounds;
-				myShiftbars[counter].events.onDragUpdate.add(shiftBarDragUpdate);
-				myShiftbars[counter].events.onDragStop.add(shiftBarDragStop);
+				if(shift.editable){
+					myShiftbars[counter].input.allowVerticalDrag = false;
+					myShiftbars[counter].input.enableDrag(false, false);				
+					myShiftbars[counter].input.boundsRect = positiveBounds;
+					myShiftbars[counter].events.onDragUpdate.add(shiftBarDragUpdate);
+					myShiftbars[counter].events.onDragStop.add(shiftBarDragStop);
+				}
 
 				// creating and aligning the handler to the shift bar sprite
-				shiftBarLeftHandlers[counter] = game.add.sprite(myShiftbars[counter].x, myShiftbars[counter].centerY,
-					'sky');
-				shiftBarLeftHandlers[counter].counterVal = counter;
-				shiftBarLeftHandlers[counter].handlerType = "left";
-				shiftBarLeftHandlers[counter].anchor.set(0.5);
-				shiftBarLeftHandlers[counter].visible = true;
-				shiftBarLeftHandlers[counter].width = 20;
-				shiftBarLeftHandlers[counter].height = myShiftbars[counter].height;
-				shiftBarLeftHandlers[counter].inputEnabled = true;
-				shiftBarLeftHandlers[counter].input.allowVerticalDrag = false;
-				shiftBarLeftHandlers[counter].input.enableDrag(false, true);
-				shiftBarLeftHandlers[counter].input.useHandCursor = true;
-				shiftBarLeftHandlers[counter].input.boundsRect = positiveBounds;
-				//shiftBarLeftHandlers.events.onDragStart.add(leftShiftHandleDragStart);
-				shiftBarLeftHandlers[counter].events.onDragStart.add(shiftHandleDragStart);
-				shiftBarLeftHandlers[counter].events.onDragUpdate.add(shiftHandleDragUpdate);
-				shiftBarLeftHandlers[counter].events.onDragStop.add(shiftHandleDragStop);
+				if(shift.editable){
 
-				// creating and aligning the handler to the shift bar sprite
-				shiftBarRightHandlers[counter] = game.add.sprite(myShiftbars[counter].right, myShiftbars[counter].centerY,
-					'sky');
-				shiftBarRightHandlers[counter].counterVal = counter;
-				shiftBarRightHandlers[counter].handlerType = "right";
-				shiftBarRightHandlers[counter].anchor.set(0.5);
-				shiftBarRightHandlers[counter].visible = true;
-				shiftBarRightHandlers[counter].width = 20;
-				shiftBarRightHandlers[counter].height = myShiftbars[counter].height;
-				shiftBarRightHandlers[counter].inputEnabled = true;
-				shiftBarRightHandlers[counter].input.allowVerticalDrag = false;
-				shiftBarRightHandlers[counter].input.enableDrag(false, true);
-				shiftBarRightHandlers[counter].input.useHandCursor = true;
-				shiftBarRightHandlers[counter].input.boundsRect = positiveBounds;
-				//shiftBarRightHandlers.events.onDragStart.add(rightShiftHandleDragStart);
-				shiftBarRightHandlers[counter].events.onDragStart.add(shiftHandleDragStart);
-				shiftBarRightHandlers[counter].events.onDragUpdate.add(shiftHandleDragUpdate);
-				shiftBarRightHandlers[counter].events.onDragStop.add(shiftHandleDragStop);
+					shiftBarLeftHandlers[counter] = game.add.sprite(myShiftbars[counter].x, myShiftbars[counter].centerY,
+						'sky');
+					shiftBarLeftHandlers[counter].counterVal = counter;
+					shiftBarLeftHandlers[counter].handlerType = "left";
+					shiftBarLeftHandlers[counter].anchor.set(0.5);
+					shiftBarLeftHandlers[counter].visible = true;
+					shiftBarLeftHandlers[counter].width = shiftHandlersWidth;
+					shiftBarLeftHandlers[counter].height = myShiftbars[counter].height;
+					shiftBarLeftHandlers[counter].inputEnabled = true;
+					shiftBarLeftHandlers[counter].input.allowVerticalDrag = false;
+					shiftBarLeftHandlers[counter].input.enableDrag(false, true);
+					shiftBarLeftHandlers[counter].input.useHandCursor = true;
+					shiftBarLeftHandlers[counter].input.boundsRect = positiveBounds;
+					//shiftBarLeftHandlers.events.onDragStart.add(leftShiftHandleDragStart);
+					shiftBarLeftHandlers[counter].events.onDragStart.add(shiftHandleDragStart);
+					shiftBarLeftHandlers[counter].events.onDragUpdate.add(shiftHandleDragUpdate);
+					shiftBarLeftHandlers[counter].events.onDragStop.add(shiftHandleDragStop);
 
+					// creating and aligning the handler to the shift bar sprite
+					shiftBarRightHandlers[counter] = game.add.sprite(myShiftbars[counter].right, myShiftbars[counter].centerY,
+						'sky');
+					shiftBarRightHandlers[counter].counterVal = counter;
+					shiftBarRightHandlers[counter].handlerType = "right";
+					shiftBarRightHandlers[counter].anchor.set(0.5);
+					shiftBarRightHandlers[counter].visible = true;
+					shiftBarRightHandlers[counter].width = shiftHandlersWidth;
+					shiftBarRightHandlers[counter].height = myShiftbars[counter].height;
+					shiftBarRightHandlers[counter].inputEnabled = true;
+					shiftBarRightHandlers[counter].input.allowVerticalDrag = false;
+					shiftBarRightHandlers[counter].input.enableDrag(false, true);
+					shiftBarRightHandlers[counter].input.useHandCursor = true;
+					shiftBarRightHandlers[counter].input.boundsRect = positiveBounds;
+					//shiftBarRightHandlers.events.onDragStart.add(rightShiftHandleDragStart);
+					shiftBarRightHandlers[counter].events.onDragStart.add(shiftHandleDragStart);
+					shiftBarRightHandlers[counter].events.onDragUpdate.add(shiftHandleDragUpdate);
+					shiftBarRightHandlers[counter].events.onDragStop.add(shiftHandleDragStop);
+				}	
 				counter++;
 			});
 		}
@@ -454,7 +485,8 @@
 			let spriteX = sprite.x
 			let innerUpdatedFlag = false;
 			xAxisScalePositions.forEach(function (xPositionArr, parentIndex) {
-				if ((spriteX > xAxisScalePositions[parentIndex][0] && xAxisScalePositions[parentIndex + 1] && spriteX < xAxisScalePositions[parentIndex + 1][0])|| spriteX ==
+				if ((spriteX > xAxisScalePositions[parentIndex][0] && xAxisScalePositions[parentIndex + 1] && spriteX <
+						xAxisScalePositions[parentIndex + 1][0]) || spriteX ==
 					xAxisScalePositions[parentIndex][0]) {
 					//console.log("parent Index", parentIndex);
 					xPositionArr.forEach(function (xPosition, index) {
@@ -477,7 +509,8 @@
 			let spriteX = Math.ceil(val)
 			let spriteXFloored = Math.floor(val)
 			for (let i = 0, length = xAxisScalePositions.length; i < length; i++) {
-				if (spriteX > xAxisScalePositions[i][0] && xAxisScalePositions[i + 1] &&  spriteX < xAxisScalePositions[i + 1][0] || spriteX ==
+				if (spriteX > xAxisScalePositions[i][0] && xAxisScalePositions[i + 1] && spriteX < xAxisScalePositions[i + 1][0] ||
+					spriteX ==
 					xAxisScalePositions[i][0]) {
 					for (let j = 0, len = xAxisScalePositions[i].length; j < len; j++) {
 						if (spriteX == Math.ceil(xAxisScalePositions[i][j]) || spriteXFloored == Math.ceil(xAxisScalePositions[i][j])) {
@@ -487,30 +520,28 @@
 							};
 						}
 					};
-				}
-                else if(!(xAxisScalePositions[i + 1])){
-                    if (spriteX == Math.ceil(xAxisScalePositions[i][0]) || spriteXFloored == Math.ceil(xAxisScalePositions[i][0])) {
-                         return {
-                                hourIndex: i,
-                                minuteIndex: 0
-                        };
-                    }
-                }
-                else{ }
+				} else if (!(xAxisScalePositions[i + 1])) {
+					if (spriteX == Math.ceil(xAxisScalePositions[i][0]) || spriteXFloored == Math.ceil(xAxisScalePositions[i][0])) {
+						return {
+							hourIndex: i,
+							minuteIndex: 0
+						};
+					}
+				} else {}
 			};
 			return null;
 		}
 
 		function updateShiftBarPosition(handler, handlerType) {
-			console.log("handlerType", handlerType);
+			//console.log("handlerType", handlerType);
 			let counter = handler.counterVal;
 			let handlerDistance = shiftBarRightHandlers[counter].x - shiftBarLeftHandlers[counter].x;
-			if (handlerDistance < xAxisBarWidth) {
-				handlerDistance = xAxisBarWidth;
+			if (handlerDistance < minimumShiftLength) {
+				handlerDistance = minimumShiftLength;
 				if (handlerType == "right") {
-					shiftBarRightHandlers[counter].x = shiftBarOnClickIntitialXPosition.x + xAxisBarWidth;
+					shiftBarRightHandlers[counter].x = shiftBarOnClickIntitialXPosition.x + minimumShiftLength;
 				} else {
-					shiftBarLeftHandlers[counter].x = shiftBarOnClickIntitialXPosition.right - xAxisBarWidth;
+					shiftBarLeftHandlers[counter].x = shiftBarOnClickIntitialXPosition.right - minimumShiftLength;
 				}
 			}
 			myShiftbars[counter].x = shiftBarLeftHandlers[counter].x;
@@ -528,6 +559,7 @@
 				barXIndex.minuteIndex = replaceMinuteIndexInMinutes(barXIndex.minuteIndex);
 				barRightIndex.minuteIndex = replaceMinuteIndexInMinutes(barRightIndex.minuteIndex);
 				let shiftTimeInfo = getCalculatedTimeFromIndexes(barXIndex, barRightIndex);
+				shiftTimeInfo.shiftId = myShiftbars[counter].shiftId;
 				console.log("shiftTimeInfo", shiftTimeInfo);
 			} else {
 				alert("Both Indexes Not Present")
@@ -573,9 +605,40 @@
 								return null;
 						}
 					}
+				case 12:
+					{
+						switch (index) {
+							case 0:
+								return 0;
+							case 1:
+								return 5;
+							case 2:
+								return 10;
+							case 3:
+								return 15;
+							case 4:
+								return 20;
+							case 5:
+								return 25;
+							case 6:
+								return 30;
+							case 7:
+								return 35;
+							case 8:
+								return 40;
+							case 9:
+								return 45;
+							case 10:
+								return 50;
+							case 11:
+								return 55;
+							default:
+								return null;
+						}
+					}
 				default:
 					{
-						return null;
+						return 0;
 					}
 			}
 
@@ -1272,18 +1335,7 @@
 		}
 
 		function render() {
-			// counter = 1;
-			// // loop to iterate over minRequired staff levels for each hour
-			// for (var eachHour in shiftData.minRequiredLevels) {
-			//     if (shiftData.minRequiredLevels.hasOwnProperty(eachHour)) {
-			//game.debug.geom(minReqLeftLine[counter]);
-			//         game.debug.geom(minReqMiddleLine[counter]);
-			//         if(counter ==  minRequiredLevelsLength){
-			//             game.debug.geom(minReqLeftLine[counter+1]);
-			//         }
-			//         counter++;
-			//     }
-			// }
+			//game.debug.geom(positiveBounds, 'rgba(200,0,0,0.5)');
 		}
 
 		function createScale() {
@@ -1345,7 +1397,6 @@
 
 				loopCounter++;
 			}
-
 		}
 
 
