@@ -5,6 +5,9 @@
 	<meta charset="UTF-8" />
 	<title>Phaser - Staffing Level Graph</title>
 	<script src="//cdn.jsdelivr.net/phaser/2.6.2/phaser.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/1.28.5/date_fns.min.js" /></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/2.4.1/lodash.min.js"></script>
+
 	<style type="text/css">
 		body {
 			margin: 0;
@@ -36,47 +39,86 @@
 	</select>
 
 	<script type="text/javascript">
+		_ = _.noConflict(); // lets call ourselves _u
+
 		//shift data object
+		var floorRefObj = {
+			1: 0,
+			2: 30,
+			4: 15,
+			12: 5,
+		}
+		var minutesInMinuteIndexObj = {
+			1: {
+				0: 0
+
+			},
+			2: {
+				0: 0,
+				30: 1,
+
+			},
+			4: {
+				0: 0,
+				15: 1,
+				30: 2,
+				45: 3,
+
+			},
+			12: {
+				0: 0,
+				5: 1,
+				10: 2,
+				15: 3,
+				20: 4,
+				25: 5,
+				30: 6,
+				35: 7,
+				40: 8,
+				45: 9,
+				50: 10,
+				55: 11,
+
+			}
+		}
+
+	let getInverseTimeIndexesObj = {
+			1: {
+				0: 0
+
+			},
+			2: {
+				0: 0,
+				30: 1,
+
+			},
+			4: {
+				0: 0,
+				15: 3,
+				30: 2,
+				45: 1,
+
+			},
+			12: {
+				0: 0,
+				5: 11,
+				10: 10,
+				15: 9,
+				20: 8,
+				25: 7,
+				30: 6,
+				35: 5,
+				40: 4,
+				45: 3,
+				50: 2,
+				55: 1,
+
+			}
+		}
 
 		var shiftData = {
 			"shiftScale": 1,
-			"myShift": [{
-					"id": 210,
-					"editable": true,
-					"startTime": {
-						"hour": 12,
-						"minutes": 0,
-					},
-					"endTime": {
-						"hour": 24,
-						"minutes": 0,
-					},
-					"startStopBrick": {
-						"duration": 2
-					},
-					"endStopBrick": {
-						"duration": 2
-					}
-				},
-				{
-					"id": 220,
-					"editable": false,
-					"startTime": {
-						"hour": 2,
-						"minutes": 0,
-					},
-					"endTime": {
-						"hour": 7,
-						"minutes": 1,
-					},
-					"startStopBrick": {
-						"duration": 2
-					},
-					"endStopBrick": {
-						"duration": 2
-					}
-				}
-			],
+			"myShift": [],
 			"availableLevels": {
 				"0 - 1": 8,
 				"1 - 2": 3,
@@ -186,6 +228,7 @@
 		// all vars block
 		{
 			//common vars
+			var today = new Date();
 			var gameWidth = 1790;
 			var gameHeight = 650;
 			var xAxisRef = 60;
@@ -208,7 +251,7 @@
 			var loopCounter;
 			var xAxis;
 			var yAxis;
-			var hourGranularity = 2; // must be 1, 2, 4 or 12 
+			var hourGranularity = 12; // must be 1, 2, 4 or 12 
 
 
 			// myShift vars
@@ -216,8 +259,10 @@
 			var shiftBarLeftHandlers = [];
 			var shiftBarRightHandlers = [];
 			var shiftBarOnClickIntitialXPosition;
-			var shiftHandlersWidth = 10;
+			var shiftHandlersWidth = 8;
 			var minimumShiftLength = xAxisBarWidth / 4;
+			var shiftBarNextDayHandler = [];
+			var shiftBarPrevDayHandler = [];
 
 			// minRequiredLevels vars
 			var minReqColor = 0x557d1d;
@@ -288,6 +333,173 @@
 			var sickLevelsLength = Object.keys(shiftData.sickLevels).length;
 		}
 
+		var currenrtDayShifts = [{
+				"day": "Tue",
+				"date": new Date(),
+				"dummy": false,
+				"currentPhase": "Puzzle",
+				"editable": true,
+				"id": 21558,
+				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 21, 30), 0),
+				"created": false,
+				"endDate": dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 5, 15), 1),
+				"formattedActivityName": "Morning Day",
+				"formattedStartDate": "",
+				"formattedEndDate": "",
+				"bId": "",
+				"pId": "",
+				"bonusTimeBank": "",
+				"amount": "",
+				"overStaff": "",
+				"underStaff": "",
+				"probability": "",
+				"accumulatedTimeBank": "",
+				"remarks": ""
+			},
+			{
+				"day": "Tue",
+				"date": new Date(),
+				"dummy": false,
+				"currentPhase": "Puzzle",
+				"editable": true,
+				"id": 2,
+				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 00), 1),
+				"created": false,
+				"endDate": dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 4, 00), 0),
+				"formattedActivityName": "Morning Day",
+				"formattedStartDate": "",
+				"formattedEndDate": "",
+				"bId": "",
+				"pId": "",
+				"bonusTimeBank": "",
+				"amount": "",
+				"overStaff": "",
+				"underStaff": "",
+				"probability": "",
+				"accumulatedTimeBank": "",
+				"remarks": ""
+			},
+			{
+				"day": "Tue",
+				"date": new Date(),
+				"dummy": false,
+				"currentPhase": "Puzzle",
+				"editable": true,
+				"id": 2,
+				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 6, 00), 0),
+				"created": false,
+				"endDate": dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 8, 10), 0),
+				"formattedActivityName": "Morning Day",
+				"formattedStartDate": "",
+				"formattedEndDate": "",
+				"bId": "",
+				"pId": "",
+				"bonusTimeBank": "",
+				"amount": "",
+				"overStaff": "",
+				"underStaff": "",
+				"probability": "",
+				"accumulatedTimeBank": "",
+				"remarks": ""
+			}
+		];
+
+		preparePhaserData(currenrtDayShifts);
+
+		function preparePhaserData(currenrtDayShifts) {
+			// converting minutes given into index, to be used for comparison in xScalePositions array while shift bar creation.
+			if (currenrtDayShifts.length > 0) {
+
+				currenrtDayShifts.forEach((currenrtDayShift) => {
+					checkForExtendedShift(currenrtDayShift);
+					let isEditable = currenrtDayShift.editable;
+					shiftData.myShift.push({
+						id: currenrtDayShift.id,
+						startTime: {
+							hour: currenrtDayShift.shiftStartHour,
+							minutes: currenrtDayShift.shiftStartMinutes
+						},
+						endTime: {
+							hour: currenrtDayShift.shiftEndHour,
+							minutes: currenrtDayShift.shiftEndMinutes
+						},
+						startDateObj: currenrtDayShift.startDate,
+						endDateObj: currenrtDayShift.endDate,
+						editable: isEditable,
+						exitsNextDay: currenrtDayShift.exitsNextDay,
+						exitsPrevDay: currenrtDayShift.exitsPrevDay,
+						nextDayTimeOffset: currenrtDayShift.nextDayTimeOffset,
+						prevDayTimeOffset: currenrtDayShift.prevDayTimeOffset,
+					});
+				});
+				console.log(shiftData)
+			} else {
+				shiftData.myShift = [];
+			}
+		}
+
+		function checkForExtendedShift(currenrtDayShift) {
+			let startDate = _.cloneDeep(currenrtDayShift.startDate);
+			let endDate = _.cloneDeep(currenrtDayShift.endDate);
+			let currentDate = _.cloneDeep(currenrtDayShift.date);
+			startDate.setHours(0, 0, 0, 0);
+			endDate.setHours(0, 0, 0, 0);
+			currentDate.setHours(0, 0, 0, 0);
+
+			if (dateFns.isAfter(endDate, currentDate)) {
+
+				currenrtDayShift.exitsNextDay = true;
+				currenrtDayShift.exitsPrevDay = false;
+				currenrtDayShift.nextDayTimeOffset = {
+					hour: dateFns.getHours(currenrtDayShift.endDate),
+					minutes: dateFns.getMinutes(currenrtDayShift.endDate)
+				}
+				currenrtDayShift.prevDayTimeOffset = null;
+				//currenrtDayShift.endDate.setHours(0, 0, 0, 0);
+				currenrtDayShift.shiftStartHour = dateFns.getHours(currenrtDayShift.startDate);
+				currenrtDayShift.shiftEndHour = 24;
+				currenrtDayShift.shiftStartMinutes = replaceMinutesInMinuteIndex(dateFns.getMinutes(currenrtDayShift.startDate));
+				currenrtDayShift.shiftEndMinutes = 0;
+
+			} else if (dateFns.isBefore(startDate, currentDate)) {
+
+				currenrtDayShift.exitsNextDay = false;
+				currenrtDayShift.exitsPrevDay = true;
+				currenrtDayShift.nextDayTimeOffset = null;
+				currenrtDayShift.prevDayTimeOffset = {
+					hour: dateFns.getHours(currenrtDayShift.startDate),
+					minutes: dateFns.getMinutes(currenrtDayShift.startDate)
+				}
+				//currenrtDayShift.startDate.setHours(24, 0, 0, 0)
+				currenrtDayShift.shiftStartHour = 0
+				currenrtDayShift.shiftEndHour = dateFns.getHours(currenrtDayShift.endDate);
+				currenrtDayShift.shiftStartMinutes = 0
+				currenrtDayShift.shiftEndMinutes = replaceMinutesInMinuteIndex(dateFns.getMinutes(currenrtDayShift.endDate));
+
+			} else {
+
+				currenrtDayShift.exitsNextDay = false;
+				currenrtDayShift.exitsPrevDay = false;
+				currenrtDayShift.nextDayTimeOffset = null;
+				currenrtDayShift.prevDayTimeOffset = null;
+				currenrtDayShift.shiftStartHour = dateFns.getHours(currenrtDayShift.startDate);
+				currenrtDayShift.shiftEndHour = dateFns.getHours(currenrtDayShift.endDate);
+				currenrtDayShift.shiftStartMinutes = replaceMinutesInMinuteIndex(dateFns.getMinutes(currenrtDayShift.startDate));
+				currenrtDayShift.shiftEndMinutes = replaceMinutesInMinuteIndex(dateFns.getMinutes(currenrtDayShift.endDate));
+			}
+		}
+
+		function replaceMinutesInMinuteIndex(minutes) {
+			minutes = floorTheMinutes(minutes, floorRefObj[hourGranularity]);
+			return minutesInMinuteIndexObj[hourGranularity][minutes];
+		}
+
+		function floorTheMinutes(minutes, roundTo) {
+			if (minutes < roundTo || roundTo == 0) {
+				return 0;
+			}
+			return Math.floor(minutes / roundTo) * roundTo;
+		}
 
 		var game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, 'graph-chart-container-section', {
 			preload: preload,
@@ -302,6 +514,8 @@
 			game.load.image('node', './assets/circle_blue.png');
 			game.load.image('sky', './assets/sky.png');
 			game.load.image('shiftImage', './assets/shiftImage.png');
+			game.load.image('leftArrow', './assets/leftArrow.png');
+			game.load.image('rightArrow', './assets/rightArrow.png');
 			game.forceSingleUpdate = true;
 
 		}
@@ -309,7 +523,7 @@
 		function create() {
 			game.stage.backgroundColor = '#ffffff';
 			//game.canvas.style.cursor = 'url(./assets/circle_blue.png),auto';
-			positiveBounds = new Phaser.Rectangle(xAxisRef, parseInt('00', 10), 24 * xAxisBarWidth + 5, yAxisRef);
+			positiveBounds = new Phaser.Rectangle(xAxisRef, parseInt('00', 10), 24 * xAxisBarWidth, yAxisRef);
 			negativeBounds = new Phaser.Rectangle(xAxisRef, yAxisRef - 4, 24 * xAxisBarWidth + 10, yAxisRef - barHeightScale);
 			loopCounter = 1;
 			sickStaffLevelGroup = game.add.group();
@@ -370,24 +584,32 @@
 				myShiftbars[counter].height = barHeightScale + 10;
 				myShiftbars[counter].shiftId = shift.id;
 				myShiftbars[counter].counterVal = counter;
+				myShiftbars[counter].startDateObj = shift.startDateObj;
+				myShiftbars[counter].endDateObj = shift.endDateObj;
+				myShiftbars[counter].exitsNextDay = shift.exitsNextDay;
+				myShiftbars[counter].exitsPrevDay = shift.exitsPrevDay;
 				myShiftbars[counter].alpha = 0.8;
-				if(shift.editable){
+				if (shift.editable) {
 					myShiftbars[counter].input.allowVerticalDrag = false;
-					myShiftbars[counter].input.enableDrag(false, false);				
+					myShiftbars[counter].input.enableDrag(false, false);
 					myShiftbars[counter].input.boundsRect = positiveBounds;
 					myShiftbars[counter].events.onDragUpdate.add(shiftBarDragUpdate);
 					myShiftbars[counter].events.onDragStop.add(shiftBarDragStop);
 				}
 
 				// creating and aligning the handler to the shift bar sprite
-				if(shift.editable){
+				if (shift.editable) {
 
 					shiftBarLeftHandlers[counter] = game.add.sprite(myShiftbars[counter].x, myShiftbars[counter].centerY,
-						'sky');
+						'transparent');
 					shiftBarLeftHandlers[counter].counterVal = counter;
 					shiftBarLeftHandlers[counter].handlerType = "left";
-					shiftBarLeftHandlers[counter].anchor.set(0.5);
-					shiftBarLeftHandlers[counter].visible = true;
+					shiftBarLeftHandlers[counter].anchor.set(0, 0.5);
+					if (shift.exitsPrevDay) {
+						shiftBarLeftHandlers[counter].visible = false;
+					} else {
+						shiftBarLeftHandlers[counter].visible = true;
+					}
 					shiftBarLeftHandlers[counter].width = shiftHandlersWidth;
 					shiftBarLeftHandlers[counter].height = myShiftbars[counter].height;
 					shiftBarLeftHandlers[counter].inputEnabled = true;
@@ -402,11 +624,15 @@
 
 					// creating and aligning the handler to the shift bar sprite
 					shiftBarRightHandlers[counter] = game.add.sprite(myShiftbars[counter].right, myShiftbars[counter].centerY,
-						'sky');
+						'transparent');
 					shiftBarRightHandlers[counter].counterVal = counter;
 					shiftBarRightHandlers[counter].handlerType = "right";
-					shiftBarRightHandlers[counter].anchor.set(0.5);
-					shiftBarRightHandlers[counter].visible = true;
+					shiftBarRightHandlers[counter].anchor.set(1, 0.5);
+					if (shift.exitsNextDay) {
+						shiftBarRightHandlers[counter].visible = false;
+					} else {
+						shiftBarRightHandlers[counter].visible = true;
+					}
 					shiftBarRightHandlers[counter].width = shiftHandlersWidth;
 					shiftBarRightHandlers[counter].height = myShiftbars[counter].height;
 					shiftBarRightHandlers[counter].inputEnabled = true;
@@ -418,12 +644,53 @@
 					shiftBarRightHandlers[counter].events.onDragStart.add(shiftHandleDragStart);
 					shiftBarRightHandlers[counter].events.onDragUpdate.add(shiftHandleDragUpdate);
 					shiftBarRightHandlers[counter].events.onDragStop.add(shiftHandleDragStop);
-				}	
+				}
+
+				if (shift.exitsNextDay) {
+					shiftBarNextDayHandler[counter] = game.add.sprite(myShiftbars[counter].right, myShiftbars[counter].centerY,
+						'rightArrow');
+					shiftBarNextDayHandler[counter].anchor.set(0, 0.5);
+					myShiftbars[counter].inverseNextDayTimeOffset = getInverseTimeIndexes(shift.nextDayTimeOffset, "nextDay")
+					myShiftbars[counter].inverseNextDayXCoordinate = getXScaleCoordinatesFromIndex(myShiftbars[counter].inverseNextDayTimeOffset);
+				}
+
+				if (shift.exitsPrevDay) {
+					shiftBarPrevDayHandler[counter] = game.add.sprite(myShiftbars[counter].x, myShiftbars[counter].centerY,
+						'leftArrow');
+					shiftBarPrevDayHandler[counter].anchor.set(1, 0.5);
+				}
+
 				counter++;
 			});
 		}
+		function getInverseTimeIndexes(timeObj, scenario){
+			let hour = timeObj.hour;
+			let minutes = timeObj.minutes
+			if(scenario == "nextDay"){
+				hourIndex = 24 - hour;
+				minutesIndex = replaceMinutesInMinuteIndex(minutes);
+				console.log("hourIndex, minutesIndex", hourIndex, minutesIndex)
+				return { hourIndex, minutesIndex };
+			}
+			else if(scenario == "prevDay"){
+
+			}
+			else{
+				//return { hour, replaceMinutesInMinuteIndex(minutes) };
+			}
+		}
+
+		function getXScaleCoordinatesFromIndex(timeIndexObj){
+			console.log("xAxisScalePositions", xAxisScalePositions);
+			console.log("timeIndexObj" ,timeIndexObj);
+			let hourIndex = timeIndexObj.hourIndex;
+			let minutesIndex = timeIndexObj.minutesIndex;
+			console.log(xAxisScalePositions[hourIndex][minutesIndex]);
+			return xAxisScalePositions[hourIndex][minutesIndex];
+		}
 
 		function shiftBarDragUpdate(shiftBar, pointer, x, y, snapOnDrag, fromStart) {
+
 			updateShiftHandlerPosition(shiftBar);
 		}
 
@@ -461,21 +728,6 @@
 		function shiftHandleDragStop(handler, pointer, x, y) {
 			let handlerType = handler.handlerType;
 			let handlerX = handler.x
-			// let updated = false;
-			// xAxisScalePositions.forEach(function(xPosition, index) {
-			// 	if(handlerX > xPosition && handlerX < xAxisScalePositions[index+1]){
-			// 		handler.x = xPosition
-			// 		updated= true;
-			// 	}
-			// 	else if(handlerX == xPosition){
-			// 		handler.x = xPosition
-			// 		updated = true;
-			// 	}
-			// 	else{}				
-			// });
-			// if(!updated){
-			// 	handler.x = xAxisScalePositions[xAxisScalePositions.length - 1];
-			// }
 			repositionSpriteBasedOnGranularity(handler);
 			updateShiftBarPosition(handler, handlerType);
 			getPosition(handler);
@@ -558,7 +810,7 @@
 				console.log("Both Indexes Present", barXIndex, barRightIndex);
 				barXIndex.minuteIndex = replaceMinuteIndexInMinutes(barXIndex.minuteIndex);
 				barRightIndex.minuteIndex = replaceMinuteIndexInMinutes(barRightIndex.minuteIndex);
-				let shiftTimeInfo = getCalculatedTimeFromIndexes(barXIndex, barRightIndex);
+				let shiftTimeInfo = getCalculatedTimeFromIndexes(barXIndex, barRightIndex, counter);
 				shiftTimeInfo.shiftId = myShiftbars[counter].shiftId;
 				console.log("shiftTimeInfo", shiftTimeInfo);
 			} else {
@@ -644,11 +896,50 @@
 
 		}
 
-		function getCalculatedTimeFromIndexes(barXIndex, barRightIndex) {
+		function getCalculatedTimeFromIndexes(barXIndex, barRightIndex, counter) {
 			let shiftTimeInfo = {};
-			shiftTimeInfo.startTime = new Date(1970, 0, 1, barXIndex.hourIndex, barXIndex.minuteIndex);
-			shiftTimeInfo.endTime = new Date(1970, 0, 1, barRightIndex.hourIndex, barRightIndex.minuteIndex);
+			let startTime; 
+			let endTime;
+
+			if (myShiftbars[counter].exitsNextDay) {
+				startTime = _.cloneDeep(myShiftbars[counter].startDateObj);
+				endTime = _.cloneDeep(myShiftbars[counter].startDateObj);
+
+				// add nextday offset Time
+				endTime.setHours(myShiftbars[counter].endDateObj.getHours(), myShiftbars[counter].endDateObj.getMinutes())
+			}
+			else if (myShiftbars[counter].exitsPrevDay) {
+				startTime = _.cloneDeep(myShiftbars[counter].endDateObj);
+				endTime = _.cloneDeep(myShiftbars[counter].endDateObj);
+
+				// sub prev day offset Time
+				startTime.setHours(myShiftbars[counter].endDateObj.getHours(), myShiftbars[counter].endDateObj.getMinutes())
+
+			} 
+			else {
+				startTime = _.cloneDeep(myShiftbars[counter].startDateObj);
+				endTime = _.cloneDeep(myShiftbars[counter].endDateObj);
+			}
+			startTime.setHours(barXIndex.hourIndex, barXIndex.minuteIndex);
+			endTime.setHours(barRightIndex.hourIndex, barRightIndex.minuteIndex);
+
+			updateOffsetHours(startTime, endTime, counter);
+
+			shiftTimeInfo.startDate = startTime;
+			shiftTimeInfo.endDate = endTime;
 			return shiftTimeInfo;
+		}
+
+		function updateOffsetHours(startTime, endTime, counter){
+			if (myShiftbars[counter].exitsNextDay) {		// add nextday offset Time
+				endTime.setHours(myShiftbars[counter].endDateObj.getHours(), myShiftbars[counter].endDateObj.getMinutes())
+			}
+			else if (myShiftbars[counter].exitsPrevDay) {	// sub prev day offset Time				
+				startTime.setHours(myShiftbars[counter].startDateObj.getHours(), myShiftbars[counter].startDateObj.getMinutes())
+
+			} 
+			else {		// no offset present for non extended shift.				
+			}
 		}
 
 		function createAvailableHourBar(hourlyLevel, counter, availableLevelsLength) {

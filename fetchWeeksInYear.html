@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Phaser - Staffing Level Graph</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/1.28.5/date_fns.min.js" /></script>
+    <style>
+        ul {
+            list-style: none;
+        }
+
+        li {
+            float: left;
+        }
+
+        .week-no {
+            background: #60a1f1;
+            padding: 15px;
+            color: white;
+            font-size: 26px;
+        }
+
+        .week-dates {
+            border: 1px solid black;
+            text-align: center;
+            font-size: 22px;
+        }
+    </style>
+    <script>
+        $(document).ready(function () {
+
+            currentISOYear = new Date(new Date().getFullYear(), 00, 05);
+            let yearArray = [ dateFns.subYears(currentISOYear, 1),  currentISOYear, dateFns.addYears(currentISOYear, 1), dateFns.addYears(
+                currentISOYear, 2)]
+            let yearsDataObj = {};
+
+            for (let counter = 0; counter < yearArray.length; counter++) {
+
+
+                let activeDate = yearArray[counter];
+                console.log("activeDate", activeDate)
+                let isoWeeksInYear = dateFns.getISOWeeksInYear(activeDate);
+                console.log("isoWeeksInYear", isoWeeksInYear)
+                let firstDateOfYear = dateFns.startOfISOYear(activeDate);
+                console.log("firstDateOfYear", firstDateOfYear)
+                let activeWeekDate = firstDateOfYear;
+                let allWeeksArray = [];
+                for (let i = 1; i <= isoWeeksInYear; i++) {
+                    allWeeksArray[i] = {}
+                    if (i != 1) {
+                        activeWeekDate = dateFns.addWeeks(activeWeekDate, 1);
+                    }
+                    allWeeksArray[i].monday = dateFns.startOfWeek(activeWeekDate, {
+                        weekStartsOn: 1
+                    });
+                    allWeeksArray[i].tuesday = dateFns.addDays(allWeeksArray[i].monday, 1);
+                    allWeeksArray[i].wednesday = dateFns.addDays(allWeeksArray[i].monday, 2);
+                    allWeeksArray[i].thursday = dateFns.addDays(allWeeksArray[i].monday, 3);
+                    allWeeksArray[i].friday = dateFns.addDays(allWeeksArray[i].monday, 4);
+                    allWeeksArray[i].saturday = dateFns.addDays(allWeeksArray[i].monday, 5);
+                    allWeeksArray[i].sunday = dateFns.addDays(allWeeksArray[i].monday, 6);
+                }
+                yearsDataObj[yearArray[counter].getFullYear()] = allWeeksArray;
+            }
+
+            console.log(yearsDataObj);
+
+
+            //     let datePickerHtml = ""
+            //     allWeeksArray.forEach(function (week, index) {
+            //         datePickerHtml +=
+            //             '<li>\
+            //         <div class="week-no">\
+            //             <p> Week ' +
+            //             index +
+            //             ' </p>\
+            //         </div>\
+            //         <div class="week-dates">\
+            //             <p>S</p>\
+            //             <p>1</p>\
+            //         </div>\
+            //     </li>'
+            // });
+            // //console.log("datePickerHtml", datePickerHtml)
+            // $('ul').html(datePickerHtml);
+            let date = new Date('2018');
+            let valuetomatch = date.getFullYear().toString();
+            let weekOffset = 0
+            for (var key in yearsDataObj) {
+                if (yearsDataObj.hasOwnProperty(key)) {
+                    
+                    if(key === valuetomatch){
+                        break;
+                    }
+                    weekOffset+=yearsDataObj[key].length - 1;
+                }
+            }
+            console.log("weekOffset", weekOffset);
+
+        });
+    </script>
+</head>
+<ul>
+    <!--<li>
+        <div class="week-no">
+            <p> Week 1 </p>
+        </div>
+        <div class="week-dates">
+            <p>S</p>
+            <p>1</p>
+        </div>
+    </li>
+    <li>
+        <div class="week-no">
+            <p> Week 1 </p>
+        </div>
+        <div class="week-dates">
+            <p>S</p>
+            <p>1</p>
+        </div>
+    </li>
+    <li>
+        <div class="week-no">
+            <p> Week 1 </p>
+        </div>
+        <div class="week-dates">
+            <p>S</p>
+            <p>1</p>
+        </div>
+    </li>-->
+</ul>
+
+<body>
+
+
+</body>
+
+</html>
