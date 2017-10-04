@@ -785,8 +785,10 @@
 
 					shiftBar.width = activeShiftBarWidth + dragDistance;
 					shiftBar.right = endCoordinates;
-					if (shiftBar.width < minimumShiftLength) {
-						//shiftBar.width = minimumShiftLength;
+					if (shiftBar.width < minimumShiftLength) {		// to prevent dragging a shift to another day
+						console.log("in if")
+						shiftBar.width = minimumShiftLength;
+						shiftBar.x = endCoordinates - minimumShiftLength;
 					}
 					//console.log("shiftBar.right, shiftBar.x", shiftBar.right,shiftBar.x )
 					if (newX < shiftBar.inverseNextDayXCoordinate) {
