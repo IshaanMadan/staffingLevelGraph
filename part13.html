@@ -176,6 +176,7 @@
 			var hourGranularity = 12; // must be 1, 2, 4 or 12 
 			var staffLevelsHourGranularity = 1; // must be 1, 2, or 4
 			var levelBarWidth = xAxisBarWidth / staffLevelsHourGranularity;
+			var granularWidth = xAxisBarWidth / hourGranularity;
 			mockStaffLevels();
 
 			// myShift vars
@@ -382,7 +383,7 @@
 				"dummy": false,
 				"currentPhase": "Puzzle",
 				"editable": true,
-				"id": 2,
+				"id": 4554,
 				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 6, 00), 0),
 				"created": false,
 				"endDate": dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 8, 10), 0),
@@ -443,7 +444,7 @@
 			endDate.setHours(0, 0, 0, 0);
 			currentDate.setHours(0, 0, 0, 0);
 
-			if (dateFns.isAfter(endDate, currentDate)) {
+			if (dateFns.isAfter(endDate, currentDate) && differenceInMinutes(currenrtDayShift.endDate, endDate)!=0) {
 
 				currenrtDayShift.exitsNextDay = true;
 				currenrtDayShift.exitsPrevDay = false;
@@ -469,7 +470,11 @@
 				}
 				//currenrtDayShift.startDate.setHours(24, 0, 0, 0)
 				currenrtDayShift.shiftStartHour = 0
-				currenrtDayShift.shiftEndHour = dateFns.getHours(currenrtDayShift.endDate);
+				if(differenceInMinutes(currenrtDayShift.endDate, endDate) == 0){
+					currenrtDayShift.shiftEndHour = 24;
+				}else{
+					currenrtDayShift.shiftEndHour = getHours(currenrtDayShift.endDate);
+				}
 				currenrtDayShift.shiftStartMinutes = 0
 				currenrtDayShift.shiftEndMinutes = replaceMinutesInMinuteIndex(dateFns.getMinutes(currenrtDayShift.endDate));
 
@@ -579,7 +584,6 @@
 
 		function createMyShiftBar(myShiftData) {
 			let counter = 1;
-			let granularWidth = xAxisBarWidth / hourGranularity;
 			myShiftData.forEach((shift) => {
 				myShiftbars[counter] = game.add.sprite(xAxisRef + ((shift.startTime.hour) * xAxisBarWidth) + ((shift.startTime.minutes) *
 						granularWidth), yAxisRef - barHeightScale -
@@ -614,7 +618,12 @@
 						'transparent');
 					shiftBarLeftHandlers[counter].counterVal = counter;
 					shiftBarLeftHandlers[counter].handlerType = "left";
-					shiftBarLeftHandlers[counter].anchor.set(0, 0.5);
+					if (shift.exitsNextDay) {
+						shiftBarLeftHandlers[counter].anchor.set(0.5, 0.5);
+					}
+					else{
+						shiftBarLeftHandlers[counter].anchor.set(0, 0.5);
+					}
 					shiftBarLeftHandlers[counter].visible = true;
 					shiftBarLeftHandlers[counter].width = shiftHandlersWidth;
 					shiftBarLeftHandlers[counter].height = myShiftbars[counter].height;
@@ -636,7 +645,6 @@
 					shiftBarRightHandlers[counter].counterVal = counter;
 					shiftBarRightHandlers[counter].handlerType = "right";
 					shiftBarRightHandlers[counter].anchor.set(1, 0.5);
-					shiftBarRightHandlers[counter].visible = true;
 					shiftBarRightHandlers[counter].visible = true;
 					shiftBarRightHandlers[counter].width = shiftHandlersWidth;
 					shiftBarRightHandlers[counter].height = myShiftbars[counter].height;
@@ -785,10 +793,9 @@
 
 					shiftBar.width = activeShiftBarWidth + dragDistance;
 					shiftBar.right = endCoordinates;
-					if (shiftBar.width < minimumShiftLength) {		// to prevent dragging a shift to another day
-						console.log("in if")
-						shiftBar.width = minimumShiftLength;
-						shiftBar.x = endCoordinates - minimumShiftLength;
+					if (shiftBar.width < granularWidth) {		// to prevent dragging a shift to another day
+						shiftBar.width = granularWidth;
+						shiftBar.x = endCoordinates - granularWidth;
 					}
 					//console.log("shiftBar.right, shiftBar.x", shiftBar.right,shiftBar.x )
 					if (newX < shiftBar.inverseNextDayXCoordinate) {
@@ -796,6 +803,7 @@
 						shiftBar.exitsNextDay = false;
 						shiftBar.width = endCoordinates - shiftBar.inverseNextDayXCoordinate
 						shiftBarNextDayHandler[counter].visible = false;
+						shiftBarLeftHandlers[counter].anchor.set(0, 0.5);
 						shiftBarRightHandlers[counter].inputEnabled = true;
 						shiftBarRightHandlers[counter].input.allowVerticalDrag = false;
 						shiftBarRightHandlers[counter].input.enableDrag(false, true);
@@ -855,7 +863,7 @@
 					xAxisScalePositions[parentIndex][0]) {
 					//console.log("parent Index", parentIndex);
 					xPositionArr.forEach(function (xPosition, index) {
-						if (spriteX > xPositionArr[index] && spriteX < xPositionArr[index + 1] && xPositionArr[index + 1]) {
+                        if (parseFloat(spriteX.toFixed(6)) > parseFloat(xPositionArr[index].toFixed(6)) && parseFloat(spriteX.toFixed(6)) <  parseFloat(xPositionArr[index+1].toFixed(6)) && xPositionArr[index + 1]) {
 							//console.log("in if");
 							if (sprite.exitsNextDay) {
 								floorDifference = sprite.x - xPositionArr[index];
@@ -865,7 +873,7 @@
 							}
 							sprite.x = xPositionArr[index];
 							innerUpdatedFlag = true;
-						} else if (spriteX > xPositionArr[index] && !xPositionArr[index + 1]) {
+                        } else if (parseFloat(spriteX.toFixed(6)) >  parseFloat(xPositionArr[index].toFixed(6)) && !xPositionArr[index + 1]) {
 							//console.log("in else if");
 							if (sprite.exitsNextDay) {
 								floorDifference = sprite.x - xPositionArr[index];
@@ -874,7 +882,7 @@
 							}
 							sprite.x = xPositionArr[index];
 							innerUpdatedFlag = true;
-						} else if (spriteX == xPositionArr[index]) {
+                        } else if (parseFloat(spriteX.toFixed(6)) ==  parseFloat(xPositionArr[index].toFixed(6))) {
 							//console.log("in else if");
 							if (sprite.exitsNextDay) {
 								floorDifference = sprite.x - xPositionArr[index];
@@ -925,16 +933,22 @@
 			//console.log("handlerType", handlerType);
 			let counter = handler.counterVal;
 			let handlerDistance = shiftBarRightHandlers[counter].x - shiftBarLeftHandlers[counter].x;
-			if (handlerDistance < minimumShiftLength) {
-				handlerDistance = minimumShiftLength;
-				if (handlerType == "right") {
-					shiftBarRightHandlers[counter].x = shiftBarOnClickIntitialXPosition.x + minimumShiftLength;
-				} else {
-					shiftBarLeftHandlers[counter].x = shiftBarOnClickIntitialXPosition.right - minimumShiftLength;
-				}
+			if(myShiftbars[counter].exitsNextDay || myShiftbars[counter].exitsPrevDay){
+				myShiftbars[counter].x = shiftBarLeftHandlers[counter].x;
+				myShiftbars[counter].width = handlerDistance;
 			}
-			myShiftbars[counter].x = shiftBarLeftHandlers[counter].x;
-			myShiftbars[counter].width = handlerDistance;
+			else{
+				if (handlerDistance < minimumShiftLength) {
+					handlerDistance = minimumShiftLength;
+					if (handlerType == "right") {
+						shiftBarRightHandlers[counter].x = shiftBarOnClickIntitialXPosition.x + minimumShiftLength;
+					} else {
+						shiftBarLeftHandlers[counter].x = shiftBarOnClickIntitialXPosition.right - minimumShiftLength;
+					}
+				}
+				myShiftbars[counter].x = shiftBarLeftHandlers[counter].x;
+				myShiftbars[counter].width = handlerDistance;
+			}
 		}
 
 
