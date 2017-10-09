@@ -1,0 +1,2646 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<title>Phaser - Staffing Level Graph</title>
+	<script src="//cdn.jsdelivr.net/phaser/2.6.2/phaser.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/1.28.5/date_fns.min.js" /></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
+
+	<style type="text/css">
+		body {
+			margin: 0;
+			background: #e0e0e0;
+			text-align: center;
+		}
+
+		canvas,
+		iframe {
+			position: absolute;
+			top: 0;
+			bottom: 0;
+			left: 0;
+			right: 0;
+			margin: auto;
+		}
+	</style>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+</head>
+
+<body>
+	<p>Select to Edit a Layer</p>
+	<select class="onTopSelect">
+		<option value = "" selected>None</option>
+		<option value = "avail" >Available</option>
+		<option value = "minReq" >MinRequired</option>
+		<option value = "maxReq" >MaxRequired</option>
+		<option value = "sick" >Sick</option>
+	</select>
+
+	<script type="text/javascript">
+		_ = _.noConflict(); // lets call ourselves _u
+
+		//shift data object
+		var floorRefObj = {
+			1: 0,
+			2: 30,
+			4: 15,
+			12: 5,
+		}
+		var minutesInMinuteIndexObj = {
+			1: {
+				0: 0
+
+			},
+			2: {
+				0: 0,
+				30: 1,
+
+			},
+			4: {
+				0: 0,
+				15: 1,
+				30: 2,
+				45: 3,
+
+			},
+			12: {
+				0: 0,
+				5: 1,
+				10: 2,
+				15: 3,
+				20: 4,
+				25: 5,
+				30: 6,
+				35: 7,
+				40: 8,
+				45: 9,
+				50: 10,
+				55: 11,
+
+			}
+		}
+
+		let getInverseTimeIndexesObj = {
+			1: {
+				0: 0
+
+			},
+			2: {
+				0: 0,
+				30: 1,
+
+			},
+			4: {
+				0: 0,
+				15: 3,
+				30: 2,
+				45: 1,
+
+			},
+			12: {
+				0: 0,
+				5: 11,
+				10: 10,
+				15: 9,
+				20: 8,
+				25: 7,
+				30: 6,
+				35: 5,
+				40: 4,
+				45: 3,
+				50: 2,
+				55: 1,
+
+			}
+		}
+
+		var shiftData = {
+			"shiftScale": 1,
+			"myShift": [],
+			"sickLevels": {
+				"0 - 1": 0,
+				"1 - 2": 0,
+				"2 - 3": 0,
+				"3 - 4": 0,
+				"4 - 5": 5,
+				"5 - 6": 5,
+				"6 - 7": 5,
+				"7 - 8": 5,
+				"8 - 9": 5,
+				"9 - 10": 0,
+				"10 - 11": 0,
+				"11 - 12": 6,
+				"12 - 13": 4,
+				"13 - 14": 0,
+				"14 - 15": 3,
+				"15 - 16": 4,
+				"16 - 17": 0,
+				"17 - 18": 0,
+				"18 - 19": 0,
+				"19 - 20": 0,
+				"20 - 21": 0,
+				"21 - 22": 0,
+				"22 - 23": 0,
+				"23 - 24": 0
+			},
+			"availableLevels": [],
+			"minRequiredLevels": [],
+			"maxRequiredLevels": [],
+		}
+
+		var staffDataFromServer = { // to be removed upon server integration(Mock)
+			"currentDay": 1507276403064,
+			"staffingLevelSetting": {
+				"detailLevelMinutes": 15,
+			},
+			"staffingLevelInterval": [{
+					"sequence": 0,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 5
+				},
+				{
+					"sequence": 1,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 2,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 3,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 5
+				},
+				{
+					"sequence": 4,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 5,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 6,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 7,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 8,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 9,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 10,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 11,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 12,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 13,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 14,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 15,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 16,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 17,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 18,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 19,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 20,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 21,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 22,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 23,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 24,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 25,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 26,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 27,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 28,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 29,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 30,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 31,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 32,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 33,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 34,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 35,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 9
+				},
+				{
+					"sequence": 36,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 37,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 38,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 39,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 40,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 41,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 42,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 43,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 44,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 45,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 46,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 47,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 48,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 49,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 50,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 51,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 52,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 8
+				},
+				{
+					"sequence": 53,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 8
+				},
+				{
+					"sequence": 54,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 55,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 10,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 56,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 57,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 58,
+					"minNoOfStaff": 8,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 5
+				},
+				{
+					"sequence": 59,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 5
+				},
+				{
+					"sequence": 60,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 61,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 62,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 63,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 64,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 65,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 66,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 67,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 68,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 69,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 70,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 71,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 72,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 73,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 74,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 75,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 76,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 14
+				},
+				{
+					"sequence": 77,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 14
+				},
+				{
+					"sequence": 78,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 13
+				},
+				{
+					"sequence": 79,
+					"minNoOfStaff": 5,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 14
+				},
+				{
+					"sequence": 80,
+					"minNoOfStaff": 5,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 4
+				},
+				{
+					"sequence": 81,
+					"minNoOfStaff": 6,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 4
+				},
+				{
+					"sequence": 82,
+					"minNoOfStaff": 6,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 4
+				},
+				{
+					"sequence": 83,
+					"minNoOfStaff": 4,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 4
+				},
+				{
+					"sequence": 84,
+					"minNoOfStaff": 6,
+					"maxNoOfStaff": 8,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 85,
+					"minNoOfStaff": 4,
+					"maxNoOfStaff": 8,
+					"availableNoOfStaff": 7
+				},
+				{
+					"sequence": 86,
+					"minNoOfStaff": 4,
+					"maxNoOfStaff": 8,
+					"availableNoOfStaff": 6
+				},
+				{
+					"sequence": 87,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 8,
+					"availableNoOfStaff": 7
+				},
+				{
+					"sequence": 88,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 89,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 10
+				},
+				{
+					"sequence": 90,
+					"minNoOfStaff": 7,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 14
+				},
+				{
+					"sequence": 91,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 9,
+					"availableNoOfStaff": 14
+				},
+				{
+					"sequence": 92,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 11
+				},
+				{
+					"sequence": 93,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 94,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 12
+				},
+				{
+					"sequence": 95,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 12
+				}
+			]
+		}
+
+		// all vars block
+		{
+			//common vars
+			var today = new Date();
+			var gameWidth = 1790;
+			var gameHeight = 650;
+			var xAxisRef = 60;
+			var xAxisBarWidth = (gameWidth - xAxisRef) / 24 - 1; //each vertical bar width
+			var yAxisScaleWidth = (gameHeight - 30) / 10;
+			var barHeightScale = 20;
+			var xScaleText = [];
+			var yScaleTextPositive = [];
+			var yScaleTextNegative = [];
+			var yAxisRef = 330; //multiple of 10
+			var scaleTextDistFromY = 25;
+			var scaleTextDistFromX = 25;
+			var underStaffPolygon = [];
+			var overStaffPolygon = [];
+			var underStaffGraphic = [];
+			var overStaffGraphic = [];
+			var xAxisScalePositions = [];
+			var yAxisScalePositions = [];
+			var polygonGroup;
+			var positiveBounds;
+			var negativeBounds;
+			var loopCounter;
+			var xAxis;
+			var yAxis;
+			var hourGranularity = 12; // must be 1, 2, 4 or 12 
+			var staffLevelsHourGranularity; // must be 1, 2, or 4
+			var levelBarWidth;
+			var granularWidth = xAxisBarWidth / hourGranularity;
+			var staffLevelsScale = 3;
+			var yAxisScaleGranularWidth = yAxisScaleWidth / staffLevelsScale;
+
+			//mockStaffLevels();
+
+			// myShift vars
+			var myShiftbars = [];
+			var shiftBarLeftHandlers = [];
+			var shiftBarRightHandlers = [];
+			var shiftBarOnClickIntitialXPosition = {};
+			var shiftHandlersWidth = 8;
+			var minimumShiftLength = xAxisBarWidth / 4;
+			var shiftBarNextDayHandler = [];
+			var shiftBarPrevDayHandler = [];
+			var activeShiftBarWidth;
+
+			// minRequiredLevels vars
+			var minReqColor = 0x557d1d;
+			var minReqHandlerStartYCoordinate;
+			var minReqCenterHandlerId;
+			var minReqDragDist;
+			var minRequiredBarHeight;
+			var minRequiredBar = [];
+			var minReqCenterHandler = [];
+			var minReqLeftHandler = [];
+			var minReqRightHandler = [];
+			var minReqLeftLine = [];
+			var minReqMiddleLine = [];
+			var minReqLeftLineGraphic = [];
+			var minReqMiddleLineGraphic = [];
+			var minReqStaffLevelGroup;
+			var minRequiredLevelsLength;
+
+			// maxRequiredLevels vars
+			var maxReqColor = 0xeea2b7;
+			var maxReqHandlerStartYCoordinate;
+			var maxReqCenterHandlerId;
+			var maxReqDragDist;
+			var maxRequiredBarHeight;
+			var maxRequiredBar = [];
+			var maxReqCenterHandler = [];
+			var maxReqLeftHandler = [];
+			var maxReqRightHandler = [];
+			var maxReqLeftLine = [];
+			var maxReqMiddleLine = [];
+			var maxReqLeftLineGraphic = [];
+			var maxReqMiddleLineGraphic = [];
+			var maxReqStaffLevelGroup;
+			var maxRequiredLevelsLength;
+			// availableLevels vars
+			var availColor = 0xcacacb;
+			var availHandlerStartYCoordinate;
+			var availDragDist;
+			var availBarHeight;
+			var availBar = [];
+			var availCenterHandler = [];
+			var availLeftHandler = [];
+			var availRightHandler = [];
+			var availLeftLine = [];
+			var availMiddleLine = [];
+			var availLeftLineGraphic = [];
+			var availMiddleLineGraphic = [];
+			var availStaffLevelGroup;
+			var availableLevelsLength;
+
+			// sickLevels vars
+			var sickColor = 0xade1f7;
+			var sickHandlerStartYCoordinate;
+			var sickCenterHandlerId;
+			var sickDragDist;
+			var sickBarHeight;
+			var sickBar = [];
+			var sickCenterHandler = [];
+			var sickLeftHandler = [];
+			var sickRightHandler = [];
+			var sickLeftLine = [];
+			var sickMiddleLine = [];
+			var sickLeftLineGraphic = [];
+			var sickMiddleLineGraphic = [];
+			var sickStaffLevelGroup;
+			var sickLevelsLength = Object.keys(shiftData.sickLevels).length;
+		}
+
+		var currenrtDayShifts = [{ // to be removed upon server integration(Mock)
+				"day": "Tue",
+				"date": new Date(),
+				"dummy": false,
+				"currentPhase": "Puzzle",
+				"editable": true,
+				"id": 21558,
+				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 19, 30), 0),
+				"created": false,
+				"endDate": dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 2, 00), 1),
+				"formattedActivityName": "Morning Day",
+				"formattedStartDate": "",
+				"formattedEndDate": "",
+				"bId": "",
+				"pId": "",
+				"bonusTimeBank": "",
+				"amount": "",
+				"overStaff": "",
+				"underStaff": "",
+				"probability": "",
+				"accumulatedTimeBank": "",
+				"remarks": ""
+			},
+			{
+				"day": "Tue",
+				"date": new Date(),
+				"dummy": false,
+				"currentPhase": "Puzzle",
+				"editable": true,
+				"id": 2,
+				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 00), 1),
+				"created": false,
+				"endDate": dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 4, 00), 0),
+				"formattedActivityName": "Morning Day",
+				"formattedStartDate": "",
+				"formattedEndDate": "",
+				"bId": "",
+				"pId": "",
+				"bonusTimeBank": "",
+				"amount": "",
+				"overStaff": "",
+				"underStaff": "",
+				"probability": "",
+				"accumulatedTimeBank": "",
+				"remarks": ""
+			},
+			{
+				"day": "Tue",
+				"date": new Date(),
+				"dummy": false,
+				"currentPhase": "Puzzle",
+				"editable": true,
+				"id": 4554,
+				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 6, 00), 0),
+				"created": false,
+				"endDate": dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 8, 10), 0),
+				"formattedActivityName": "Morning Day",
+				"formattedStartDate": "",
+				"formattedEndDate": "",
+				"bId": "",
+				"pId": "",
+				"bonusTimeBank": "",
+				"amount": "",
+				"overStaff": "",
+				"underStaff": "",
+				"probability": "",
+				"accumulatedTimeBank": "",
+				"remarks": ""
+			}
+		];
+
+		function mockStaffLevels() { // no longer in use since using staffDataFromServer mockup
+			// switch (staffLevelsHourGranularity) {
+
+			// 	case 1:
+			// 		{ //	0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23	
+			// 			shiftData.availableLevels = [8, 4, 7, 10, 9, 9, 9, 7, 7, 7, 6, 4, 4, 8, 11, 15, 15, 15, 10, 10, 13, 8, 8, 13];
+
+			// 			//  0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23	
+			// 			shiftData.minRequiredLevels = [10, 5, 8, 10, 5, 5, 6, 8, 8, 9, 5, 12, 10, 8, 11, 13, 8, 7, 9, 9, 10, 7, 6, 10];
+
+			// 			//	  0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23	
+			// 			shiftData.maxRequiredLevels = [11, 10, 9, 11, 10, 9, 9, 10, 13, 11, 13, 13, 13, 10, 12, 14, 10, 15, 15, 11, 12,
+			// 				10, 13, 13
+			// 			];
+			// 			break;
+			// 		}
+			// 	case 2:
+			// 		{ //	0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48	
+			// 			shiftData.availableLevels = [8, 4, 7, 10, 9, 9, 9, 7, 7, 7, 6, 4, 4, 8, 11, 15, 15, 15, 10, 10, 13, 8, 8, 13, 8,
+			// 				4, 7, 10, 9, 9, 9, 7, 7, 7, 6, 4, 4, 8, 11, 15, 15, 15, 10, 10, 13, 8, 8, 13
+			// 			];
+
+			// 			//  0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48	
+			// 			shiftData.minRequiredLevels = [10, 5, 8, 10, 5, 5, 6, 8, 8, 9, 5, 12, 10, 8, 11, 13, 8, 7, 9, 9, 10, 7, 6, 10, 10,
+			// 				5, 8, 10, 5, 5, 6, 8, 8, 9, 5, 12, 10, 8, 11, 13, 8, 7, 9, 9, 10, 7, 6, 10
+			// 			];
+
+			// 			//	  0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48	
+			// 			shiftData.maxRequiredLevels = [11, 10, 9, 11, 10, 9, 9, 10, 13, 11, 13, 13, 13, 10, 12, 14, 10, 15, 15, 11, 12,
+			// 				10, 13, 13, 11, 10, 9, 11, 10, 9, 9, 10, 13, 11, 13, 13, 13, 10, 12, 14, 10, 15, 15, 11, 12, 10, 13, 13
+			// 			];
+			// 			break;
+			// 		}
+			// 	case 4:
+			// 		{	
+			// 									  // 0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,	
+			// 			shiftData.availableLevels = [5 ,6 ,6 ,5 ,9 ,9 ,10,9 ,10,10,10,10,9 ,9 ,9 ,12,11,11,11,10,13,12,12,12,13,
+			// 			 // 25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,
+			// 				13,13,13,6 ,6 ,6 ,6 ,9 ,9 ,9 ,9 ,12,12,10,10,11,11,11,11,12,10,10,12,10,11,12,13,8 ,8 ,10,10,6 ,6 ,5 ,
+			// 			 // 59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,	
+			// 				5 ,10,10,10,10,12,12,13,13,12,12,12,12,11,11,13,13,14,14,13,14,4 ,4 ,4 ,4 ,6 ,7 ,6 ,7 ,10,10,14,14,11,
+			// 			 // 93,94,95
+			// 			 	12,12,12	
+			// 			];
+
+			// 									    // 0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,	
+			// 			shiftData.minRequiredLevels = [10,10,10,10,8 ,8 ,8 ,8 ,7 ,7 ,7 ,7 ,11,11,11,11,9 ,9 ,9 ,9 ,10,10,10,10,12,
+			// 			 // 25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,
+			// 				12,12,12,7 ,7 ,7 ,7 ,8 ,9 ,8 ,8 ,9 ,9 ,9 ,9 ,10,10,9 ,9 ,11,11,11,11,9 ,9 ,9 ,9 ,7 ,7 ,7 ,7 ,8 ,8 ,8 ,
+			// 			 // 59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,	
+			// 				9 ,10,10,10,10,9 ,9 ,9 ,9 ,11,11,11,11,12,12,12,9 ,10,10,10,5 ,5 ,6 ,6 ,4 ,6 ,4 ,4 ,7 ,7 ,7 ,7 ,10,10,
+			// 			 // 93,94,95
+			// 			 	10,10,10	
+			// 			];
+
+			// 									    // 0 ,1 ,2 ,3 ,4 ,5 ,6 ,7 ,8 ,9 ,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,	
+			// 			shiftData.maxRequiredLevels = [12,12,12,12,10,10,10,10,13,13,13,13,12,12,13,13,14,14,14,14,11,11,11,11,14,
+			// 			 // 25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,
+			// 				14,14,14,9 ,9 ,9 ,9 ,10,10,10,10,11,11,12,11,12,12,12,12,13,12,13,13,15,15,15,15,10,10,10,10,11,11,11,
+			// 			 // 59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,
+			// 				11,15,15,14,14,13,13,13,13,12,12,12,12,14,14,14,14,12,12,12,12,9 ,9 ,9 ,9 ,8 ,8 ,8 ,8 ,9 ,9 ,9 ,9 ,12,
+			// 			 // 93,94,95
+			// 			 	12,12,12	
+			// 			];
+			// 		}
+			// 	default:
+			// 		{
+			// 			return 0;
+			// 		}
+			// }
+		}
+
+		preparePhaserStaffLevels(staffDataFromServer);
+		preparePhaserShiftData(currenrtDayShifts);
+
+		function preparePhaserShiftData(currenrtDayShifts) {
+			// converting minutes given into index, to be used for comparison in xScalePositions array while shift bar creation.
+			if (currenrtDayShifts.length > 0) {
+
+				currenrtDayShifts.forEach((currenrtDayShift) => {
+					checkForExtendedShift(currenrtDayShift);
+					let isEditable = currenrtDayShift.editable;
+					shiftData.myShift.push({
+						id: currenrtDayShift.id,
+						startTime: {
+							hour: currenrtDayShift.shiftStartHour,
+							minutes: currenrtDayShift.shiftStartMinutes
+						},
+						endTime: {
+							hour: currenrtDayShift.shiftEndHour,
+							minutes: currenrtDayShift.shiftEndMinutes
+						},
+						startDateObj: currenrtDayShift.startDate,
+						endDateObj: currenrtDayShift.endDate,
+						editable: isEditable,
+						exitsNextDay: currenrtDayShift.exitsNextDay,
+						exitsPrevDay: currenrtDayShift.exitsPrevDay,
+						nextDayTimeOffset: currenrtDayShift.nextDayTimeOffset,
+						prevDayTimeOffset: currenrtDayShift.prevDayTimeOffset,
+					});
+				});
+				console.log("shiftData", shiftData)
+			} else {
+				shiftData.myShift = [];
+			}
+		}
+
+		function preparePhaserStaffLevels(currentDayStaffData) {
+			staffLevelsHourGranularity = getHourGranularityFromMinutes(currentDayStaffData.staffingLevelSetting.detailLevelMinutes);
+
+			if (currentDayStaffData.staffingLevelInterval) {
+				//console.log("currentDayStaffData.staffingLevelInterval", currentDayStaffData.staffingLevelInterval)
+				currentDayStaffData.staffingLevelInterval.forEach((levelsObj) => {
+					shiftData.availableLevels[levelsObj.sequence] = levelsObj.availableNoOfStaff;
+					shiftData.minRequiredLevels[levelsObj.sequence] = levelsObj.minNoOfStaff;
+					shiftData.maxRequiredLevels[levelsObj.sequence] = levelsObj.maxNoOfStaff;
+				});
+			} else {
+				shiftData.availableLevels = [];
+				shiftData.minRequiredLevels = [];
+				shiftData.maxRequiredLevels = [];
+			}
+			availableLevelsLength = shiftData.availableLevels.length;
+			minRequiredLevelsLength = shiftData.minRequiredLevels.length;
+			maxRequiredLevelsLength = shiftData.maxRequiredLevels.length;
+			levelBarWidth = xAxisBarWidth / staffLevelsHourGranularity;
+		}
+
+		function getHourGranularityFromMinutes(minutes) {
+			switch (minutes) {
+				case 60:
+					return 1;
+				case 30:
+					return 2;
+				case 15:
+					return 4;
+				case 5:
+					return 12;
+				default:
+					return 1;
+			}
+		}
+
+		function checkForExtendedShift(currenrtDayShift) {
+			let startDate = _.cloneDeep(currenrtDayShift.startDate);
+			let endDate = _.cloneDeep(currenrtDayShift.endDate);
+			let currentDate = _.cloneDeep(currenrtDayShift.date);
+			startDate.setHours(0, 0, 0, 0);
+			endDate.setHours(0, 0, 0, 0);
+			currentDate.setHours(0, 0, 0, 0);
+
+			if (dateFns.isAfter(endDate, currentDate) && dateFns.differenceInMinutes(currenrtDayShift.endDate, endDate) != 0) {
+
+				currenrtDayShift.exitsNextDay = true;
+				currenrtDayShift.exitsPrevDay = false;
+				currenrtDayShift.nextDayTimeOffset = {
+					hour: dateFns.getHours(currenrtDayShift.endDate),
+					minutes: dateFns.getMinutes(currenrtDayShift.endDate)
+				}
+				currenrtDayShift.prevDayTimeOffset = null;
+				//currenrtDayShift.endDate.setHours(0, 0, 0, 0);
+				currenrtDayShift.shiftStartHour = dateFns.getHours(currenrtDayShift.startDate);
+				currenrtDayShift.shiftEndHour = 24;
+				currenrtDayShift.shiftStartMinutes = replaceMinutesInMinuteIndex(dateFns.getMinutes(currenrtDayShift.startDate));
+				currenrtDayShift.shiftEndMinutes = 0;
+
+			} else if (dateFns.isBefore(startDate, currentDate)) {
+
+				currenrtDayShift.exitsNextDay = false;
+				currenrtDayShift.exitsPrevDay = true;
+				currenrtDayShift.nextDayTimeOffset = null;
+				currenrtDayShift.prevDayTimeOffset = {
+					hour: dateFns.getHours(currenrtDayShift.startDate),
+					minutes: dateFns.getMinutes(currenrtDayShift.startDate)
+				}
+				//currenrtDayShift.startDate.setHours(24, 0, 0, 0)
+				currenrtDayShift.shiftStartHour = 0
+				if (dateFns.differenceInMinutes(currenrtDayShift.endDate, endDate) == 0) {
+					currenrtDayShift.shiftEndHour = 24;
+				} else {
+					currenrtDayShift.shiftEndHour = dateFns.getHours(currenrtDayShift.endDate);
+				}
+				currenrtDayShift.shiftStartMinutes = 0
+				currenrtDayShift.shiftEndMinutes = replaceMinutesInMinuteIndex(dateFns.getMinutes(currenrtDayShift.endDate));
+
+			} else {
+
+				currenrtDayShift.exitsNextDay = false;
+				currenrtDayShift.exitsPrevDay = false;
+				currenrtDayShift.nextDayTimeOffset = null;
+				currenrtDayShift.prevDayTimeOffset = null;
+				currenrtDayShift.shiftStartHour = dateFns.getHours(currenrtDayShift.startDate);
+				currenrtDayShift.shiftEndHour = dateFns.getHours(currenrtDayShift.endDate);
+				currenrtDayShift.shiftStartMinutes = replaceMinutesInMinuteIndex(dateFns.getMinutes(currenrtDayShift.startDate));
+				currenrtDayShift.shiftEndMinutes = replaceMinutesInMinuteIndex(dateFns.getMinutes(currenrtDayShift.endDate));
+			}
+		}
+
+		function replaceMinutesInMinuteIndex(minutes) {
+			minutes = floorTheMinutes(minutes, floorRefObj[hourGranularity]);
+			return minutesInMinuteIndexObj[hourGranularity][minutes];
+		}
+
+		function floorTheMinutes(minutes, roundTo) {
+			if (minutes < roundTo || roundTo == 0) {
+				return 0;
+			}
+			return Math.floor(minutes / roundTo) * roundTo;
+		}
+
+		var game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, 'graph-chart-container-section', {
+			preload: preload,
+			create: create,
+			update: update,
+			render: render
+		});
+
+		function preload() {
+			game.load.image('greyImage', './assets/greyImage.jpg');
+			game.load.image('transparent', './assets/transparent.png');
+			game.load.image('node', './assets/circle_blue.png');
+			game.load.image('sky', './assets/sky.png');
+			game.load.image('shiftImage', './assets/shiftImage.png');
+			game.load.image('leftArrow', './assets/leftArrow.png');
+			game.load.image('rightArrow', './assets/rightArrow.png');
+			game.forceSingleUpdate = true;
+
+		}
+
+		function create() {
+			console.log("staffLevelsHourGranularity", staffLevelsHourGranularity)
+			game.stage.backgroundColor = '#ffffff';
+			positiveBounds = new Phaser.Rectangle(xAxisRef, parseInt('00', 10), 24 * xAxisBarWidth, yAxisRef + 7);
+			negativeBounds = new Phaser.Rectangle(xAxisRef, yAxisRef - 4, 24 * xAxisBarWidth + 10, yAxisRef - barHeightScale);
+			loopCounter = 1;
+			sickStaffLevelGroup = game.add.group();
+			// loop to iterate over sick staff levels for each hour
+			// for (var eachHour in shiftData.sickLevels) {
+			// 	if (shiftData.sickLevels.hasOwnProperty(eachHour)) {
+			// 		createSickHourBar(shiftData.sickLevels[eachHour], loopCounter, sickLevelsLength);
+			// 		loopCounter++;
+			// 	}
+			// }
+
+			loopCounter = 1;
+			availStaffLevelGroup = game.add.group();
+			// loop to iterate over available staff levels for each hour
+			for (var eachHour in shiftData.availableLevels) {
+				//createAvailableHourBar(shiftData.availableLevels[loopCounter-1], loopCounter, availableLevelsLength);
+				createStaffLevelsBar(shiftData.availableLevels[loopCounter - 1], loopCounter, availableLevelsLength, "greyImage",
+					availBar, availCenterHandler, "availBar", availRightHandler, availLeftHandler, availLeftLine, availMiddleLine,
+					availLeftLineGraphic, availMiddleLineGraphic,
+					availStaffLevelGroup, availHandlerDragStart, availHandlerDragUpdate, availHandlerDragStop, availBarInputOver,
+					availBarInputOut, availColor)
+				loopCounter++;
+			}
+
+			loopCounter = 1;
+			minReqStaffLevelGroup = game.add.group();
+			// loop to iterate over minRequired staff levels for each hour
+			for (var eachHour in shiftData.minRequiredLevels) {
+				// createStaffLevelsBar(shiftData.minRequiredLevels[loopCounter - 1], loopCounter, minRequiredLevelsLength,
+				// 	"transparent", minRequiredBar, minReqCenterHandler, "minReqCenterHandlerId", minReqRightHandler,
+				// 	"minReqRightHandlerId", minReqLeftHandler, "minReqLeftHandlerId", minReqLeftLine, minReqMiddleLine,
+				// 	minReqLeftLineGraphic, minReqMiddleLineGraphic, minReqStaffLevelGroup, minReqHandlerDragStart,
+				// 	minReqHandlerDragUpdate, minReqHandlerDragStop, minReqBarInputOver, minReqBarInputOut, minReqColor)
+				loopCounter++;
+			}
+
+			loopCounter = 1;
+			maxReqStaffLevelGroup = game.add.group();
+			// loop to iterate over maxRequired staff levels for each hour
+			for (var eachHour in shiftData.maxRequiredLevels) {
+				// createStaffLevelsBar(shiftData.maxRequiredLevels[loopCounter - 1], loopCounter, maxRequiredLevelsLength,
+				// 	"transparent", maxRequiredBar, maxReqCenterHandler, "maxReqCenterHandlerId", maxReqRightHandler,
+				// 	"maxReqRightHandlerId", maxReqLeftHandler, "maxReqLeftHandlerId", maxReqLeftLine, maxReqMiddleLine,
+				// 	maxReqLeftLineGraphic, maxReqMiddleLineGraphic, maxReqStaffLevelGroup, maxReqHandlerDragStart,
+				// 	maxReqHandlerDragUpdate, maxReqHandlerDragStop, maxReqBarInputOver, maxReqBarInputOut, maxReqColor)
+				loopCounter++;
+			}
+
+			polygonGroup = game.add.group();
+			createScale();
+			//indicateConflictAreas();
+			//createMyShiftBar(shiftData.myShift);
+		}
+
+		function createMyShiftBar(myShiftData) {
+			let counter = 1;
+			myShiftData.forEach((shift) => {
+				myShiftbars[counter] = game.add.sprite(xAxisRef + ((shift.startTime.hour) * xAxisBarWidth) + ((shift.startTime.minutes) *
+						granularWidth), yAxisRef - barHeightScale -
+					11, 'shiftImage');
+
+				if (shift.editable && !shift.exitsPrevDay) {
+					myShiftbars[counter].inputEnabled = true;
+				}
+				myShiftbars[counter].width = ((shift.endTime.hour - shift.startTime.hour) * xAxisBarWidth) + ((shift.endTime.minutes) *
+					granularWidth) - ((shift.startTime.minutes) * granularWidth);
+				myShiftbars[counter].height = barHeightScale + 10;
+				myShiftbars[counter].shiftId = shift.id;
+				myShiftbars[counter].counterVal = counter;
+				myShiftbars[counter].startDateObj = shift.startDateObj;
+				myShiftbars[counter].endDateObj = shift.endDateObj;
+				myShiftbars[counter].exitsNextDay = shift.exitsNextDay;
+				myShiftbars[counter].exitsPrevDay = shift.exitsPrevDay;
+				myShiftbars[counter].alpha = 0.8;
+				if (myShiftbars[counter].inputEnabled) {
+					myShiftbars[counter].input.allowVerticalDrag = false;
+					myShiftbars[counter].input.enableDrag(false, false);
+					myShiftbars[counter].input.boundsRect = positiveBounds;
+					myShiftbars[counter].events.onDragStart.add(shiftBarDragStart);
+					myShiftbars[counter].events.onDragUpdate.add(shiftBarDragUpdate);
+					myShiftbars[counter].events.onDragStop.add(shiftBarDragStop);
+				}
+
+				// creating and aligning the handler to the shift bar sprite
+				if (shift.editable) {
+
+					shiftBarLeftHandlers[counter] = game.add.sprite(myShiftbars[counter].x, myShiftbars[counter].centerY,
+						'transparent');
+					shiftBarLeftHandlers[counter].counterVal = counter;
+					shiftBarLeftHandlers[counter].handlerType = "left";
+					if (shift.exitsNextDay) {
+						shiftBarLeftHandlers[counter].anchor.set(0.5, 0.5);
+					} else {
+						shiftBarLeftHandlers[counter].anchor.set(0, 0.5);
+					}
+					shiftBarLeftHandlers[counter].visible = true;
+					shiftBarLeftHandlers[counter].width = shiftHandlersWidth;
+					shiftBarLeftHandlers[counter].height = myShiftbars[counter].height;
+					if (!shift.exitsPrevDay) {
+						shiftBarLeftHandlers[counter].inputEnabled = true;
+						shiftBarLeftHandlers[counter].input.allowVerticalDrag = false;
+						shiftBarLeftHandlers[counter].input.enableDrag(false, true);
+						shiftBarLeftHandlers[counter].input.useHandCursor = true;
+						shiftBarLeftHandlers[counter].input.boundsRect = positiveBounds;
+					}
+					//shiftBarLeftHandlers.events.onDragStart.add(leftShiftHandleDragStart);
+					shiftBarLeftHandlers[counter].events.onDragStart.add(shiftHandleDragStart);
+					shiftBarLeftHandlers[counter].events.onDragUpdate.add(shiftHandleDragUpdate);
+					shiftBarLeftHandlers[counter].events.onDragStop.add(shiftHandleDragStop);
+
+					// creating and aligning the handler to the shift bar sprite
+					shiftBarRightHandlers[counter] = game.add.sprite(myShiftbars[counter].right, myShiftbars[counter].centerY,
+						'transparent');
+					shiftBarRightHandlers[counter].counterVal = counter;
+					shiftBarRightHandlers[counter].handlerType = "right";
+					shiftBarRightHandlers[counter].anchor.set(1, 0.5);
+					shiftBarRightHandlers[counter].visible = true;
+					shiftBarRightHandlers[counter].width = shiftHandlersWidth;
+					shiftBarRightHandlers[counter].height = myShiftbars[counter].height;
+					if (!shift.exitsNextDay) {
+						shiftBarRightHandlers[counter].inputEnabled = true;
+						shiftBarRightHandlers[counter].input.allowVerticalDrag = false;
+						shiftBarRightHandlers[counter].input.enableDrag(false, true);
+						shiftBarRightHandlers[counter].input.useHandCursor = true;
+						shiftBarRightHandlers[counter].input.boundsRect = positiveBounds;
+					}
+					//shiftBarRightHandlers.events.onDragStart.add(rightShiftHandleDragStart);
+					shiftBarRightHandlers[counter].events.onDragStart.add(shiftHandleDragStart);
+					shiftBarRightHandlers[counter].events.onDragUpdate.add(shiftHandleDragUpdate);
+					shiftBarRightHandlers[counter].events.onDragStop.add(shiftHandleDragStop);
+				}
+
+				if (shift.exitsNextDay) {
+					shiftBarNextDayHandler[counter] = game.add.sprite(myShiftbars[counter].right, myShiftbars[counter].centerY,
+						'rightArrow');
+					shiftBarNextDayHandler[counter].anchor.set(0, 0.5);
+					myShiftbars[counter].inverseNextDayTimeOffset = getInverseTimeIndexes(shift.startDateObj, shift.endDateObj,
+						"nextDay")
+					myShiftbars[counter].inverseNextDayXCoordinate = getXScaleCoordinatesFromIndex(myShiftbars[counter].inverseNextDayTimeOffset);
+					myShiftbars[counter].variableEndDateObj = _.cloneDeep(myShiftbars[counter].endDateObj);
+					let variableEndDateTimeObj = getVariableDateObjTime(myShiftbars[counter].variableEndDateObj, "nextDay");
+					let nextText = variableEndDateTimeObj.hour + "." + variableEndDateTimeObj.minutes + " hours - Extended";
+					myShiftbars[counter].nextOffsetText = game.add.text(myShiftbars[counter].right - 5, myShiftbars[counter].y - 10,
+						nextText, {
+							font: "18px open"
+						});
+					myShiftbars[counter].nextOffsetText.anchor.setTo(1, 0.5);
+				} else if (shift.exitsPrevDay) {
+					shiftBarPrevDayHandler[counter] = game.add.sprite(myShiftbars[counter].x, myShiftbars[counter].centerY,
+						'leftArrow');
+					shiftBarPrevDayHandler[counter].anchor.set(1, 0.5);
+					myShiftbars[counter].inversePrevDayTimeOffset = getInverseTimeIndexes(shift.startDateObj, shift.endDateObj,
+						"prevDay")
+					myShiftbars[counter].inversePrevDayXCoordinate = getXScaleCoordinatesFromIndex(myShiftbars[counter].inversePrevDayTimeOffset);
+					myShiftbars[counter].variableStartDateObj = _.cloneDeep(myShiftbars[counter].startDateObj);
+					let variableStartDateTimeObj = getVariableDateObjTime(myShiftbars[counter].variableStartDateObj, "prevDay");
+					let prevText = variableStartDateTimeObj.hour + "." + variableStartDateTimeObj.minutes + " hours - Extended";
+					myShiftbars[counter].prevOffsetText = game.add.text(myShiftbars[counter].x + 5, myShiftbars[counter].y - 10,
+						prevText, {
+							font: "18px open"
+						});
+					myShiftbars[counter].prevOffsetText.anchor.setTo(0, 0.5);
+				}
+
+				counter++;
+			});
+		}
+
+		function getInverseTimeIndexes(shiftStartDateObj, shiftEndDateObj, scenario) {
+			let hour;
+			let minutes;
+			if (scenario == "nextDay") {
+				let clonedShiftStartDateObj = _.cloneDeep(shiftStartDateObj);
+				clonedShiftStartDateObj.setHours(
+					shiftStartDateObj.getHours() - shiftEndDateObj.getHours(),
+					shiftStartDateObj.getMinutes() - shiftEndDateObj.getMinutes(),
+				)
+				//console.log("clonedShiftStartDateObj", clonedShiftStartDateObj);
+				hour = clonedShiftStartDateObj.getHours();
+				minutes = clonedShiftStartDateObj.getMinutes();
+				let hourIndex = hour;
+				let minutesIndex = replaceMinutesInMinuteIndex(minutes);
+				//console.log("hourIndex, minutesIndex", hourIndex, minutesIndex)
+				return {
+					hourIndex,
+					minutesIndex
+				};
+			} else if (scenario == "prevDay") {
+				let clonedShiftEndDateObj = _.cloneDeep(shiftEndDateObj);
+				clonedShiftEndDateObj.setHours(
+					shiftEndDateObj.getHours() + shiftStartDateObj.getHours(),
+					shiftEndDateObj.getMinutes() + shiftStartDateObj.getMinutes(),
+				)
+				//console.log("clonedShiftEndDateObj", clonedShiftEndDateObj);
+				hour = clonedShiftEndDateObj.getHours();
+				minutes = clonedShiftEndDateObj.getMinutes();
+				let hourIndex = hour;
+				let minutesIndex = replaceMinutesInMinuteIndex(minutes);
+				//console.log("hourIndex, minutesIndex", hourIndex, minutesIndex)
+				return {
+					hourIndex,
+					minutesIndex
+				};
+			}
+		}
+
+		function getXScaleCoordinatesFromIndex(timeIndexObj) {
+			// console.log("xAxisScalePositions", xAxisScalePositions);
+			// console.log("timeIndexObj", timeIndexObj);
+			let hourIndex = timeIndexObj.hourIndex;
+			let minutesIndex = timeIndexObj.minutesIndex;
+			//console.log(xAxisScalePositions[hourIndex][minutesIndex]);
+			return xAxisScalePositions[hourIndex][minutesIndex];
+		}
+
+		function shiftBarDragStart(shift, pointer, x, y) {
+			console.log("inside shiftBarDragStart ")
+			shiftBarOnClickIntitialXPosition = {
+				x: shift.x,
+				right: shift.right
+			}
+			activeShiftBarWidth = shift.width;
+		}
+
+		function shiftBarDragUpdate(shiftBar, pointer, newX, newY, snapOnDrag, fromStart) {
+			if (shiftBar.exitsNextDay || shiftBar.exitsPrevDay) {
+				updateShiftWidthOnDrag(shiftBar, newX);
+			}
+			updateShiftHandlerPosition(shiftBar);
+		}
+
+		function shiftBarDragStop(shiftBar, pointer, x, y) {
+			let shiftBarX = shiftBar.x
+			repositionSpriteBasedOnXGranularity(shiftBar);
+			updateShiftHandlerPosition(shiftBar);
+			getPosition(shiftBar, "drag");
+			//console.log("xAxisScalePositions", xAxisScalePositions);
+		}
+
+
+
+		function updateShiftWidthOnDrag(shiftBar, newX) {
+
+			/**** - Phaser Bug WorkAround - ********************************
+				* On Some Occasions shiftBarDragStart function is not called 
+					automatically on click
+			***************************************************************/
+			if (!activeShiftBarWidth) {
+				shiftBarDragStart(shiftBar, {}, 10, 20); //dummy values
+			}
+			/*******************************************/
+
+
+			let dragDistance = shiftBarOnClickIntitialXPosition.x - newX;
+			if (!isNaN(dragDistance)) {
+				//console.log("dragDistance", dragDistance);
+				if (shiftBar.exitsNextDay) {
+					let endCoordinates = getXScaleCoordinatesFromIndex({
+						hourIndex: 24,
+						minutesIndex: 0
+					});
+
+					shiftBar.width = activeShiftBarWidth + dragDistance;
+					shiftBar.right = endCoordinates;
+					if (shiftBar.width < granularWidth) { // to prevent dragging a shift to another day
+						shiftBar.width = granularWidth;
+						shiftBar.x = endCoordinates - granularWidth;
+					}
+					//console.log("shiftBar.right, shiftBar.x", shiftBar.right,shiftBar.x )
+					if (newX < shiftBar.inverseNextDayXCoordinate) {
+						let counter = shiftBar.counterVal;
+						shiftBar.exitsNextDay = false;
+						shiftBar.width = endCoordinates - shiftBar.inverseNextDayXCoordinate
+						shiftBarNextDayHandler[counter].visible = false;
+						shiftBarLeftHandlers[counter].anchor.set(0, 0.5);
+						shiftBarRightHandlers[counter].inputEnabled = true;
+						shiftBarRightHandlers[counter].input.allowVerticalDrag = false;
+						shiftBarRightHandlers[counter].input.enableDrag(false, true);
+						shiftBarRightHandlers[counter].input.useHandCursor = true;
+						shiftBarRightHandlers[counter].input.boundsRect = positiveBounds;
+						myShiftbars[counter].endDateObj = dateFns.subDays(myShiftbars[counter].endDateObj, 1);
+						myShiftbars[counter].nextOffsetText.destroy();
+					}
+
+				} else if (shiftBar.exitsNextDay) {
+
+				} else {}
+			}
+
+		}
+
+		function updateShiftHandlerPosition(shiftBar) {
+			let counter = shiftBar.counterVal;
+			shiftBarLeftHandlers[counter].x = shiftBar.x
+			shiftBarLeftHandlers[counter].y = shiftBar.centerY
+			shiftBarRightHandlers[counter].x = shiftBar.right
+			shiftBarRightHandlers[counter].y = shiftBar.centerY
+		}
+
+
+
+		function shiftHandleDragStart(handler, pointer, x, y) {
+			let handlerType = handler.handlerType;
+			let counter = handler.counterVal;
+			shiftBarOnClickIntitialXPosition = {
+				x: myShiftbars[counter].x,
+				right: myShiftbars[counter].right
+			}
+		}
+
+		function shiftHandleDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+			let handlerType = handler.handlerType;
+			updateShiftBarPosition(handler, handlerType);
+		}
+
+		function shiftHandleDragStop(handler, pointer, x, y) {
+			let handlerType = handler.handlerType;
+			let handlerX = handler.x
+			repositionSpriteBasedOnXGranularity(handler);
+			updateShiftBarPosition(handler, handlerType);
+			getPosition(handler, "stretch");
+		}
+
+		function repositionSpriteBasedOnXGranularity(sprite) {
+			//console.log("in repositionSpriteBasedOnXGranularity", sprite.x, sprite.right);
+			let spriteX = sprite.x
+			let innerUpdatedFlag = false;
+			let floorDifference;
+			xAxisScalePositions.forEach(function (xPositionArr, parentIndex) {
+				if ((spriteX > xAxisScalePositions[parentIndex][0] && xAxisScalePositions[parentIndex + 1] && spriteX <
+						xAxisScalePositions[parentIndex + 1][0]) || spriteX ==
+					xAxisScalePositions[parentIndex][0]) {
+					//console.log("parent Index", parentIndex);
+					xPositionArr.forEach(function (xPosition, index) {
+						if (parseFloat(spriteX.toFixed(6)) > parseFloat(xPositionArr[index].toFixed(6)) && parseFloat(spriteX.toFixed(
+								6)) < parseFloat(xPositionArr[index + 1].toFixed(6)) && xPositionArr[index + 1]) {
+							//console.log("in if");
+							if (sprite.exitsNextDay) {
+								floorDifference = sprite.x - xPositionArr[index];
+
+								sprite.width = sprite.width + floorDifference;
+								//console.log("floorDifference, sprite.right", floorDifference, sprite.right);
+							}
+							sprite.x = xPositionArr[index];
+							innerUpdatedFlag = true;
+						} else if (parseFloat(spriteX.toFixed(6)) > parseFloat(xPositionArr[index].toFixed(6)) && !xPositionArr[index +
+								1]) {
+							//console.log("in else if");
+							if (sprite.exitsNextDay) {
+								floorDifference = sprite.x - xPositionArr[index];
+								sprite.width = sprite.width + floorDifference;
+								//console.log("floorDifference, sprite.right", floorDifference, sprite.right);
+							}
+							sprite.x = xPositionArr[index];
+							innerUpdatedFlag = true;
+						} else if (parseFloat(spriteX.toFixed(6)) == parseFloat(xPositionArr[index].toFixed(6))) {
+							//console.log("in else if");
+							if (sprite.exitsNextDay) {
+								floorDifference = sprite.x - xPositionArr[index];
+								sprite.width = sprite.width + floorDifference;
+								//console.log("floorDifference, sprite.right", floorDifference, sprite.right);
+							}
+							sprite.x = xPositionArr[index];
+							innerUpdatedFlag = true;
+						} else {
+							//console.log("in elsessssddidh");
+						}
+					});
+					if (!innerUpdatedFlag) {
+						sprite.x = xPositionArr[xPositionArr.length - 1];
+					}
+				} else {}
+			});
+		}
+
+
+		function repositionSpriteBasedOnYGranularity(sprite) {
+			console.log("in repositionSpriteBasedOnXGranularity", sprite.y);
+			console.log("yAxisScalePositions", yAxisScalePositions);
+			let spriteY = sprite.y
+			let innerUpdatedFlag = false;
+			let floorDifference;
+			yAxisScalePositions.forEach(function (yPositionArr, parentIndex) {
+				if ((spriteY < yAxisScalePositions[parentIndex][0] && yAxisScalePositions[parentIndex + 1] && spriteY >
+						yAxisScalePositions[parentIndex + 1][0]) || spriteY ==
+					yAxisScalePositions[parentIndex][0]) {
+					console.log("parent Index", parentIndex);
+					yPositionArr.forEach(function (yPosition, index) {
+						console.log("child Index", index)
+						if (parseFloat(spriteY.toFixed(6)) < parseFloat(yPositionArr[index].toFixed(6)) && yPositionArr[index + 1] &&
+							parseFloat(spriteY.toFixed(6)) > parseFloat(yPositionArr[index + 1].toFixed(6))) {
+							console.log("in if", index);
+							sprite.y = yPositionArr[index];
+							innerUpdatedFlag = true;
+						} else if (parseFloat(spriteY.toFixed(6)) < parseFloat(yPositionArr[index].toFixed(6)) && !yPositionArr[index +
+								1]) {
+							console.log("in else if 1", index);
+							sprite.y = yPositionArr[index];
+							innerUpdatedFlag = true;
+						} else if (parseFloat(spriteY.toFixed(6)) == parseFloat(yPositionArr[index].toFixed(6))) {
+							console.log("in else if 2", index);
+							sprite.y = yPositionArr[index];
+							innerUpdatedFlag = true;
+						} else {
+							//console.log("in else");
+						}
+					});
+					if (!innerUpdatedFlag) {
+						sprite.y = yPositionArr[yPositionArr.length - 1][0];
+					}
+				}else if(spriteY < yAxisScalePositions[parentIndex][0] && !yAxisScalePositions[parentIndex + 1]){
+					sprite.y = yPositionArr[0];
+				} 
+				else {}
+			});
+			console.log("sprite.y", sprite.y);
+		}
+
+
+		function findInXAxisScalePositions(val) {
+			let spriteX = Math.ceil(val)
+			let spriteXFloored = Math.floor(val)
+			for (let i = 0, length = xAxisScalePositions.length; i < length; i++) {
+				if (spriteX > xAxisScalePositions[i][0] && xAxisScalePositions[i + 1] && spriteX < xAxisScalePositions[i + 1][0] ||
+					spriteX ==
+					xAxisScalePositions[i][0]) {
+					for (let j = 0, len = xAxisScalePositions[i].length; j < len; j++) {
+						if (spriteX == Math.ceil(xAxisScalePositions[i][j]) || spriteXFloored == Math.ceil(xAxisScalePositions[i][j])) {
+							return {
+								hourIndex: i,
+								minuteIndex: j
+							};
+						}
+					};
+				} else if (!(xAxisScalePositions[i + 1])) {
+					if (spriteX == Math.ceil(xAxisScalePositions[i][0]) || spriteXFloored == Math.ceil(xAxisScalePositions[i][0])) {
+						return {
+							hourIndex: i,
+							minuteIndex: 0
+						};
+					}
+				} else {}
+			};
+			return null;
+		}
+
+		function findInYAxisScalePositions(val) {
+			let spriteY = Math.ceil(val)
+			let spriteYFloored = Math.floor(val)
+			for (let i = 0, length = yAxisScalePositions.length; i < length; i++) {
+				if (spriteY < yAxisScalePositions[i][0] && yAxisScalePositions[i + 1] && spriteY > yAxisScalePositions[i + 1][0] ||
+					spriteY ==	yAxisScalePositions[i][0]) {
+					for (let j = 0, len = yAxisScalePositions[i].length; j < len; j++) {
+						if (spriteY == Math.ceil(yAxisScalePositions[i][j]) || spriteYFloored == Math.ceil(yAxisScalePositions[i][j])) {
+							return {
+								parentIndex: i,
+								childIndex: j
+							};
+						}
+					};
+				} else if (!(yAxisScalePositions[i + 1])) {
+					if (spriteY == Math.ceil(yAxisScalePositions[i][0]) || spriteYFloored == Math.ceil(yAxisScalePositions[i][0])) {
+						return {
+							parentIndex: i,
+							childIndex: 0
+						};
+					}
+				} else {}
+			};
+			return null;
+		}
+
+		function updateShiftBarPosition(handler, handlerType) {
+			//console.log("handlerType", handlerType);
+			let counter = handler.counterVal;
+			let handlerDistance = shiftBarRightHandlers[counter].x - shiftBarLeftHandlers[counter].x;
+			if (myShiftbars[counter].exitsNextDay || myShiftbars[counter].exitsPrevDay) {
+				myShiftbars[counter].x = shiftBarLeftHandlers[counter].x;
+				myShiftbars[counter].width = handlerDistance;
+			} else {
+				if (handlerDistance < minimumShiftLength) {
+					handlerDistance = minimumShiftLength;
+					if (handlerType == "right") {
+						shiftBarRightHandlers[counter].x = shiftBarOnClickIntitialXPosition.x + minimumShiftLength;
+					} else {
+						shiftBarLeftHandlers[counter].x = shiftBarOnClickIntitialXPosition.right - minimumShiftLength;
+					}
+				}
+				myShiftbars[counter].x = shiftBarLeftHandlers[counter].x;
+				myShiftbars[counter].width = handlerDistance;
+			}
+		}
+
+
+		function getPosition(sprite, event) {
+			let counter = sprite.counterVal;
+			//console.log("in getPosition, (myShiftbars[counter].x", myShiftbars[counter].x, myShiftbars[counter].right);
+			let barXIndex = findInXAxisScalePositions(myShiftbars[counter].x);
+			let barRightIndex = findInXAxisScalePositions(myShiftbars[counter].right);
+
+			if (barXIndex && barRightIndex) {
+				console.log("Both Indexes Present", barXIndex, barRightIndex);
+				barXIndex.minuteIndex = replaceMinuteIndexInMinutes(barXIndex.minuteIndex);
+				barRightIndex.minuteIndex = replaceMinuteIndexInMinutes(barRightIndex.minuteIndex);
+				let shiftTimeInfo = getCalculatedTimeFromIndexes(barXIndex, barRightIndex, counter, event);
+				shiftTimeInfo.shiftId = myShiftbars[counter].shiftId;
+				console.log("shiftTimeInfo", shiftTimeInfo);
+			} else {
+				alert("Both Indexes Not Present")
+			}
+		}
+
+		function emitStaffLevels(sprite){
+			let counter = sprite.counterVal;
+			let barYIndex = findInYAxisScalePositions(availBar[counter].y);
+			let staffLevel = calculateStaffLevel(barYIndex)
+			let staffLevelsInfo = {
+				levelType: "available",
+				value: staffLevel
+			}
+			console.log("staffLevelsInfo", staffLevelsInfo);
+
+		}	
+		function calculateStaffLevel(barYIndex){
+			return barYIndex.parentIndex * staffLevelsScale + barYIndex.childIndex;
+		}
+
+		function replaceMinuteIndexInMinutes(index) {
+
+			switch (hourGranularity) {
+
+				case 1:
+					{
+						switch (index) {
+							case 0:
+								return 0;
+							default:
+								return null;
+						}
+					}
+				case 2:
+					{
+						switch (index) {
+							case 0:
+								return 0;
+							case 1:
+								return 30;
+							default:
+								return null;
+						}
+					}
+				case 4:
+					{
+						switch (index) {
+							case 0:
+								return 0;
+							case 1:
+								return 15;
+							case 2:
+								return 30;
+							case 3:
+								return 45;
+							default:
+								return null;
+						}
+					}
+				case 12:
+					{
+						switch (index) {
+							case 0:
+								return 0;
+							case 1:
+								return 5;
+							case 2:
+								return 10;
+							case 3:
+								return 15;
+							case 4:
+								return 20;
+							case 5:
+								return 25;
+							case 6:
+								return 30;
+							case 7:
+								return 35;
+							case 8:
+								return 40;
+							case 9:
+								return 45;
+							case 10:
+								return 50;
+							case 11:
+								return 55;
+							default:
+								return null;
+						}
+					}
+				default:
+					{
+						return 0;
+					}
+			}
+
+		}
+
+		function getCalculatedTimeFromIndexes(barXIndex, barRightIndex, counter, event) {
+			let shiftTimeInfo = {};
+			let startTime;
+			let endTime;
+			//console.log("myShiftbars[counter].startDateObj", myShiftbars[counter].startDateObj,myShiftbars[counter].endDateObj)
+			if (myShiftbars[counter].exitsNextDay) {
+
+				startTime = _.cloneDeep(myShiftbars[counter].startDateObj);
+				endTime = _.cloneDeep(myShiftbars[counter].startDateObj);
+
+				// add nextday offset Time
+				endTime.setHours(myShiftbars[counter].endDateObj.getHours(), myShiftbars[counter].endDateObj.getMinutes())
+
+			} else if (myShiftbars[counter].exitsPrevDay) {
+				startTime = _.cloneDeep(myShiftbars[counter].endDateObj);
+				endTime = _.cloneDeep(myShiftbars[counter].endDateObj);
+
+				// sub prev day offset Time
+				startTime.setHours(myShiftbars[counter].endDateObj.getHours(), myShiftbars[counter].endDateObj.getMinutes())
+
+			} else {
+				startTime = _.cloneDeep(myShiftbars[counter].startDateObj);
+				endTime = _.cloneDeep(myShiftbars[counter].endDateObj);
+			}
+			startTime.setHours(barXIndex.hourIndex, barXIndex.minuteIndex);
+			endTime.setHours(barRightIndex.hourIndex, barRightIndex.minuteIndex);
+
+			updateOffsetHours(startTime, endTime, counter, event);
+
+			shiftTimeInfo.startDate = startTime;
+			shiftTimeInfo.endDate = endTime;
+			return shiftTimeInfo;
+		}
+
+		function updateOffsetHours(startTime, endTime, counter, event) {
+
+			if (myShiftbars[counter].exitsNextDay) { // add nextday offset Time
+
+				let minutesDrag = dateFns.differenceInMinutes(myShiftbars[counter].startDateObj, startTime);
+				if (event == "drag") {
+					myShiftbars[counter].variableEndDateObj = dateFns.subMinutes(myShiftbars[counter].endDateObj, minutesDrag);
+				} else if (event == "stretch") {
+					myShiftbars[counter].startDateObj = _.cloneDeep(startTime);
+					myShiftbars[counter].inverseNextDayTimeOffset = getInverseTimeIndexes(myShiftbars[counter].startDateObj,
+						myShiftbars[counter].endDateObj,
+						"nextDay")
+					myShiftbars[counter].inverseNextDayXCoordinate = getXScaleCoordinatesFromIndex(myShiftbars[counter].inverseNextDayTimeOffset);
+				}
+				let variableEndDateTimeObj = getVariableDateObjTime(myShiftbars[counter].variableEndDateObj, "nextDay");
+				//console.log(" minutesDrag", minutesDrag)
+				//console.log("myShiftbars[counter].startDateObj", myShiftbars[counter].startDateObj)
+				endTime.setHours(variableEndDateTimeObj.hour, variableEndDateTimeObj.minutes)
+				let nextText = variableEndDateTimeObj.hour + "." + variableEndDateTimeObj.minutes + " hours - Extended";
+				myShiftbars[counter].nextOffsetText.text = nextText;
+
+			} else if (myShiftbars[counter].exitsPrevDay) { // sub prev day offset Time		
+
+				startTime.setHours(myShiftbars[counter].startDateObj.getHours(), myShiftbars[counter].startDateObj.getMinutes());
+				startTime.setDate(myShiftbars[counter].startDateObj.getDate())
+			}
+		}
+
+		function getVariableDateObjTime(variableDateObj, scenario) {
+			let hour;
+			let minutes;
+			if (scenario == "nextDay") {
+
+				hour = variableDateObj.getHours();
+				minutes = (variableDateObj.getMinutes() < 10 ? '0' : '') + variableDateObj.getMinutes();
+
+			} else if (scenario == "prevDay") {
+
+				//console.log("variableStartDateObj in getTime", variableDateObj)
+				let clonedVariableDateObj = _.cloneDeep(variableDateObj);
+				clonedVariableDateObj.setHours(24, 0, 0);
+				let minutesDiff = dateFns.differenceInMinutes(clonedVariableDateObj, variableDateObj);
+				hour = Math.floor((minutesDiff) / 60);
+				minutes = (((minutesDiff) % 60) < 10 ? '0' : '') + ((minutesDiff) % 60);
+
+			}
+			return ({
+				hour,
+				minutes
+			});
+		}
+
+		function createStaffLevelsBar(hourlyLevel, counter, spriteLevelsLength, spriteImg, spriteBar, spriteCenterHandler,
+			handlerType, spriteRightHandler, spriteLeftHandler, spriteLeftLine, spriteMiddleLine, spriteLeftLineGraphic,
+			spriteMiddleLineGraphic, spriteStaffLevelGroup,
+			spriteHandlerDragStart, spriteHandlerDragUpdate, spriteHandlerDragStop, spriteBarInputOver, spriteBarInputOut,
+			spriteColor) {
+
+
+			// creating a bar sprite and positioning it according to available staff levels
+			spriteBar[counter] = game.add.sprite(xAxisRef + ((counter - 1) * levelBarWidth), yAxisRef - hourlyLevel *
+				yAxisScaleGranularWidth, spriteImg);
+			spriteBar[counter].height = hourlyLevel * yAxisScaleGranularWidth;
+			spriteBar[counter].width = levelBarWidth;
+			spriteBar[counter].inputEnabled = true;
+			spriteBar[counter].barName = "Bar-" + counter;
+			spriteBar[counter].barId = counter;
+			spriteBar[counter].alpha = 0.8;
+
+
+			// creating and aligning the handler to the available bar sprite
+			spriteCenterHandler[counter] = game.add.sprite(spriteBar[counter].centerX,
+				spriteBar[counter].y, 'node');
+			spriteCenterHandler[counter].counterVal = counter;
+			spriteCenterHandler[counter].handlerType = handlerType;
+			spriteCenterHandler[counter].anchor.set(0.5);
+			spriteCenterHandler[counter].scale.setTo(0.1);
+			spriteCenterHandler[counter].inputEnabled = true;
+			spriteCenterHandler[counter].input.allowHorizontalDrag = false;
+			spriteCenterHandler[counter].input.enableDrag(false, true);
+			spriteCenterHandler[counter].input.useHandCursor = true;
+			spriteCenterHandler[counter].input.boundsRect = positiveBounds;
+			//spriteCenterHandler[counter].visible = false;
+
+			if (counter == 1) {
+				spriteRightHandler[counter - 1] = game.add.sprite(xAxisRef, yAxisRef, 'node');
+				spriteRightHandler[counter - 1].counterVal = counter - 1;
+				spriteRightHandler[counter - 1].handlerType = handlerType;
+				spriteRightHandler[counter - 1].anchor.set(0.5);
+				spriteRightHandler[counter - 1].scale.setTo(0.04);
+				spriteRightHandler[counter - 1].visible = false;
+			}
+
+			// creating and aligning the handler to the sprite bar sprite
+			spriteLeftHandler[counter] = game.add.sprite(spriteBar[counter].x, spriteBar[counter].y, 'node');
+			spriteLeftHandler[counter].counterVal = counter;
+			spriteLeftHandler[counter].handlerType = handlerType;
+			spriteLeftHandler[counter].visible = false;
+			spriteLeftHandler[counter].anchor.set(0.5);
+			spriteLeftHandler[counter].scale.setTo(0.04);
+
+			// creating and aligning the handler to the sprite bar sprite
+			spriteRightHandler[counter] = game.add.sprite(spriteBar[counter].right, spriteBar[counter].y, 'node');
+			spriteRightHandler[counter].counterVal = counter;
+			spriteRightHandler[counter].handlerType = handlerType;
+			spriteRightHandler[counter].visible = false;
+			spriteRightHandler[counter].anchor.set(0.5);
+			spriteRightHandler[counter].scale.setTo(0.04);
+
+
+			spriteLeftLine[counter] = new Phaser.Line(spriteLeftHandler[counter].x, spriteLeftHandler[counter].y,
+				spriteRightHandler[
+					counter - 1].x, spriteRightHandler[counter - 1].y);
+			spriteMiddleLine[counter] = new Phaser.Line(spriteLeftHandler[counter].x, spriteLeftHandler[counter].y,
+				spriteRightHandler[counter].x, spriteRightHandler[counter].y);
+
+			spriteLeftLineGraphic[counter] = game.add.graphics(0, 0);
+			spriteLeftLineGraphic[counter].lineStyle(2, spriteColor, 1);
+			spriteLeftLineGraphic[counter].moveTo(spriteLeftHandler[counter].x, spriteLeftHandler[counter].y); //moving position of graphic if you draw mulitple lines
+			spriteLeftLineGraphic[counter].lineTo(spriteRightHandler[counter - 1].x, spriteRightHandler[counter - 1].y);
+
+			spriteMiddleLineGraphic[counter] = game.add.graphics(0, 0);
+			spriteMiddleLineGraphic[counter].lineStyle(2, spriteColor, 1);
+			spriteMiddleLineGraphic[counter].moveTo(spriteLeftHandler[counter].x, spriteLeftHandler[counter].y); //moving position of graphic if you draw mulitple lines
+			spriteMiddleLineGraphic[counter].lineTo(spriteRightHandler[counter].x, spriteRightHandler[counter].y);
+
+			if (counter == spriteLevelsLength) {
+				spriteLeftHandler[counter + 1] = game.add.sprite(xAxisRef + ((counter) * levelBarWidth), yAxisRef, 'node');
+				spriteLeftHandler[counter + 1].counterVal = counter + 1;
+				spriteLeftHandler[counter + 1].handlerType = handlerType;
+				spriteLeftHandler[counter + 1].anchor.set(0.5);
+				spriteLeftHandler[counter + 1].scale.setTo(0.04);
+				spriteLeftHandler[counter + 1].visible = false;
+				spriteLeftLine[counter + 1] = new Phaser.Line(spriteLeftHandler[counter + 1].x, spriteLeftHandler[counter + 1].y,
+					spriteRightHandler[counter].x, spriteRightHandler[counter].y);
+				spriteLeftLineGraphic[counter + 1] = game.add.graphics(0, 0);
+				spriteLeftLineGraphic[counter + 1].lineStyle(2, spriteColor, 1);
+				spriteLeftLineGraphic[counter + 1].moveTo(spriteLeftHandler[counter + 1].x, spriteLeftHandler[counter + 1].y); //moving position of graphic if you draw mulitple lines
+				spriteLeftLineGraphic[counter + 1].lineTo(spriteRightHandler[counter].x, spriteRightHandler[counter].y);
+				spriteStaffLevelGroup.add(spriteLeftLineGraphic[counter + 1]);
+			}
+
+			// attaching events to the handler
+			spriteCenterHandler[counter].events.onDragStart.add(spriteHandlerDragStart);
+			spriteCenterHandler[counter].events.onDragUpdate.add(spriteHandlerDragUpdate);
+			spriteCenterHandler[counter].events.onDragStop.add(spriteHandlerDragStop);
+			spriteBar[counter].events.onInputOver.add(spriteBarInputOver);
+			spriteBar[counter].events.onInputOut.add(spriteBarInputOut);
+
+			spriteStaffLevelGroup.add(spriteBar[counter]);
+			spriteStaffLevelGroup.add(spriteCenterHandler[counter]);
+			spriteStaffLevelGroup.add(spriteLeftHandler[counter]);
+			spriteStaffLevelGroup.add(spriteRightHandler[counter]);
+			spriteStaffLevelGroup.add(spriteLeftLineGraphic[counter]);
+			spriteStaffLevelGroup.add(spriteMiddleLineGraphic[counter]);
+
+		}
+
+		function createSickHourBar(hourlyLevel, counter, sickLevelsLength) {
+
+
+			// creating a bar sprite and positioning it according to sick staff levels
+			sickBar[counter] = game.add.sprite(xAxisRef + ((counter - 1) * 30), yAxisRef, 'sky');
+			sickBar[counter].height = hourlyLevel * 10;
+			sickBar[counter].width = 30;
+			sickBar[counter].inputEnabled = true;
+			sickBar[counter].barName = "Bar-" + counter;
+			sickBar[counter].barId = counter;
+			sickBar[counter].alpha = 0.8;
+
+
+			// creating and aligning the handler to the sick bar sprite
+			sickCenterHandler[counter] = game.add.sprite(xAxisRef + ((counter - 1) * 30) + 15, yAxisRef + hourlyLevel * 10,
+				'node');
+			sickCenterHandler[counter].sickCenterHandlerId = counter;
+			sickCenterHandler[counter].anchor.set(0.5);
+			sickCenterHandler[counter].scale.setTo(0.05);
+			sickCenterHandler[counter].inputEnabled = true;
+			sickCenterHandler[counter].input.allowHorizontalDrag = false;
+			sickCenterHandler[counter].input.enableDrag(false, true);
+			sickCenterHandler[counter].input.useHandCursor = true;
+			sickCenterHandler[counter].input.boundsRect = negativeBounds;
+			sickCenterHandler[counter].visible = false;
+
+			if (counter == 1) {
+				sickRightHandler[counter - 1] = game.add.sprite(xAxisRef, yAxisRef, 'node');
+				sickRightHandler[counter - 1].sickLeftHandlerId = counter - 1;
+				sickRightHandler[counter - 1].anchor.set(0.5);
+				sickRightHandler[counter - 1].scale.setTo(0.04);
+				sickRightHandler[counter - 1].visible = false;
+			}
+
+			// creating and aligning the handler to the sick bar sprite
+			sickLeftHandler[counter] = game.add.sprite(xAxisRef + ((counter - 1) * 30), yAxisRef + hourlyLevel * 10, 'node');
+			sickLeftHandler[counter].sickLeftHandlerId = counter;
+			sickLeftHandler[counter].visible = false;
+			sickLeftHandler[counter].anchor.set(0.5);
+			sickLeftHandler[counter].scale.setTo(0.04);
+
+			// creating and aligning the handler to the sick bar sprite
+			sickRightHandler[counter] = game.add.sprite(xAxisRef + ((counter) * 30), yAxisRef + hourlyLevel * 10, 'node');
+			sickRightHandler[counter].sickRightHandlerId = counter;
+			sickRightHandler[counter].visible = false;
+			sickRightHandler[counter].anchor.set(0.5);
+			sickRightHandler[counter].scale.setTo(0.04);
+
+
+			sickLeftLine[counter] = new Phaser.Line(sickLeftHandler[counter].x, sickLeftHandler[counter].y, sickRightHandler[
+				counter - 1].x, sickRightHandler[counter - 1].y);
+			sickMiddleLine[counter] = new Phaser.Line(sickLeftHandler[counter].x, sickLeftHandler[counter].y, sickRightHandler[
+				counter].x, sickRightHandler[counter].y);
+
+			sickLeftLineGraphic[counter] = game.add.graphics(0, 0);
+			sickLeftLineGraphic[counter].lineStyle(2, sickColor, 1);
+			sickLeftLineGraphic[counter].moveTo(sickLeftHandler[counter].x, sickLeftHandler[counter].y); //moving position of graphic if you draw mulitple lines
+			sickLeftLineGraphic[counter].lineTo(sickRightHandler[counter - 1].x, sickRightHandler[counter - 1].y);
+
+			sickMiddleLineGraphic[counter] = game.add.graphics(0, 0);
+			sickMiddleLineGraphic[counter].lineStyle(2, sickColor, 1);
+			sickMiddleLineGraphic[counter].moveTo(sickLeftHandler[counter].x, sickLeftHandler[counter].y); //moving position of graphic if you draw mulitple lines
+			sickMiddleLineGraphic[counter].lineTo(sickRightHandler[counter].x, sickRightHandler[counter].y);
+
+			if (counter == sickLevelsLength) {
+				sickLeftHandler[counter + 1] = game.add.sprite(xAxisRef + ((counter) * 30), yAxisRef, 'node');
+				sickLeftHandler[counter + 1].sickLeftHandlerId = counter + 1;
+				sickLeftHandler[counter + 1].anchor.set(0.5);
+				sickLeftHandler[counter + 1].scale.setTo(0.04);
+				sickLeftHandler[counter + 1].visible = false;
+				sickLeftLine[counter + 1] = new Phaser.Line(sickLeftHandler[counter + 1].x, sickLeftHandler[counter + 1].y,
+					sickRightHandler[counter].x, sickRightHandler[counter].y);
+				sickLeftLineGraphic[counter + 1] = game.add.graphics(0, 0);
+				sickLeftLineGraphic[counter + 1].lineStyle(2, sickColor, 1);
+				sickLeftLineGraphic[counter + 1].moveTo(sickLeftHandler[counter + 1].x, sickLeftHandler[counter + 1].y); //moving position of graphic if you draw mulitple lines
+				sickLeftLineGraphic[counter + 1].lineTo(sickRightHandler[counter].x, sickRightHandler[counter].y);
+				sickStaffLevelGroup.add(sickLeftLineGraphic[counter + 1]);
+			}
+
+			// attaching events to the handler
+			sickCenterHandler[counter].events.onDragStart.add(sickHandlerDragStart);
+			sickCenterHandler[counter].events.onDragUpdate.add(sickHandlerDragUpdate);
+			sickCenterHandler[counter].events.onDragStop.add(sickHandlerDragStop);
+			sickBar[counter].events.onInputOver.add(sickBarInputOver);
+			sickBar[counter].events.onInputOut.add(sickBarInputOut);
+
+			sickStaffLevelGroup.add(sickBar[counter]);
+			sickStaffLevelGroup.add(sickCenterHandler[counter]);
+			sickStaffLevelGroup.add(sickLeftHandler[counter]);
+			sickStaffLevelGroup.add(sickRightHandler[counter]);
+			sickStaffLevelGroup.add(sickLeftLineGraphic[counter]);
+			sickStaffLevelGroup.add(sickMiddleLineGraphic[counter]);
+
+		}
+
+
+
+		function availBarInputOver(bar, pointer) {
+			//barId = bar.barId;
+			//availCenterHandler[barId].visible = true;
+		}
+
+		function availBarInputOut(bar, pointer) {
+			//barId = bar.barId;
+			//availCenterHandler[barId].visible = false;
+		}
+
+		function minReqBarInputOver(bar, pointer) {
+			//barId = bar.barId;
+			//minReqCenterHandler[barId].visible = true;
+		}
+
+		function minReqBarInputOut(bar, pointer) {
+			//barId = bar.barId;
+			//minReqCenterHandler[barId].visible = false;
+		}
+
+		function maxReqBarInputOver(bar, pointer) {
+			//barId = bar.barId;
+			//maxReqCenterHandler[barId].visible = true;
+		}
+
+		function maxReqBarInputOut(bar, pointer) {
+			//barId = bar.barId;
+			//maxReqCenterHandler[barId].visible = false;
+		}
+
+		function sickBarInputOver(bar, pointer) {
+			//barId = bar.barId;
+			//sickCenterHandler[barId].visible = true;
+		}
+
+		function sickBarInputOut(bar, pointer) {
+			//barId = bar.barId;
+			//sickCenterHandler[barId].visible = false;
+		}
+
+
+
+
+		function availHandlerDragStart(handler, pointer, x, y) {
+			let counter = handler.counterVal;
+			let handlerType = handler.handlerType;
+			availHandlerStartYCoordinate = y;
+			availBarHeight = availBar[counter].height;
+		}
+
+		function availHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+			let counter = handler.counterVal;
+			let handlerType = handler.handlerType;
+			availDragDist = availHandlerStartYCoordinate - handler.y;
+			//console.log("availDragDist", availDragDist);
+			if (!isNaN(availDragDist)) {
+				availBar[counter].height = availBarHeight + availDragDist;
+				availBar[counter].y = handler.y;
+
+				availRightHandler[counter].y = availLeftHandler[counter].y = availBar[
+					counter].y;
+
+				availLeftLine[counter].fromSprite(availLeftHandler[counter], availRightHandler[
+					counter - 1], false);
+				availLeftLine[counter + 1].fromSprite(availLeftHandler[counter + 1], availRightHandler[
+					counter], false);
+				availMiddleLine[counter].fromSprite(availLeftHandler[counter], availRightHandler[
+					counter], false);
+
+				availLeftLineGraphic[counter].clear();
+				availLeftLineGraphic[counter].lineStyle(2, availColor, 1);
+				availLeftLineGraphic[counter].moveTo(availLeftHandler[counter].x, availLeftHandler[
+					counter].y); //moving position of graphic if you draw mulitple lines
+				availLeftLineGraphic[counter].lineTo(availRightHandler[counter - 1].x, availRightHandler[
+					counter - 1].y);
+
+				availLeftLineGraphic[counter + 1].clear();
+				availLeftLineGraphic[counter + 1].lineStyle(2, availColor, 1);
+				availLeftLineGraphic[counter + 1].moveTo(availLeftHandler[counter + 1].x,
+					availLeftHandler[counter + 1].y); //moving position of graphic if you draw mulitple lines
+				availLeftLineGraphic[counter + 1].lineTo(availRightHandler[counter].x, availRightHandler[
+					counter].y);
+
+				availMiddleLineGraphic[counter].clear();
+				availMiddleLineGraphic[counter].lineStyle(2, availColor, 1);
+				availMiddleLineGraphic[counter].moveTo(availLeftHandler[counter].x, availLeftHandler[
+					counter].y); //moving position of graphic if you draw mulitple lines
+				availMiddleLineGraphic[counter].lineTo(availRightHandler[counter].x, availRightHandler[
+					counter].y);
+
+				//updateConflictArea(counter);
+			}
+
+		}
+
+
+		function availHandlerDragStop(handler, pointer) {
+			let counter = handler.counterVal;
+			let handlerType = handler.handlerType;
+			repositionSpriteBasedOnYGranularity(handler);
+			availHandlerDragUpdate(handler);		// calling function again to update line graphics, staff bar height after repositioning of handler 
+			emitStaffLevels(handler);
+		}
+
+		function minReqHandlerDragStart(handler, pointer, x, y) {
+
+			minReqHandlerStartYCoordinate = y;
+			minRequiredBarHeight = minRequiredBar[minReqCenterHandlerId].height;
+		}
+
+		function minReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+			minReqCenterHandlerId = handler.minReqCenterHandlerId;
+			//console.log("minReqCenterHandlerId", minReqCenterHandlerId);
+			minReqDragDist = minReqHandlerStartYCoordinate - handler.y;
+			//console.log("minReqDragDist", minReqDragDist);
+			if (!isNaN(minReqDragDist)) {
+				minRequiredBar[minReqCenterHandlerId].height = minRequiredBarHeight + Math.floor(minReqDragDist / 10) * 10;
+				minRequiredBar[minReqCenterHandlerId].y = (Math.ceil(handler.y / 10) * 10);
+
+				minReqRightHandler[minReqCenterHandlerId].y = minReqLeftHandler[minReqCenterHandlerId].y = minRequiredBar[
+					minReqCenterHandlerId].y;
+
+				minReqLeftLine[minReqCenterHandlerId].fromSprite(minReqLeftHandler[minReqCenterHandlerId], minReqRightHandler[
+					minReqCenterHandlerId - 1], false);
+				minReqLeftLine[minReqCenterHandlerId + 1].fromSprite(minReqLeftHandler[minReqCenterHandlerId + 1],
+					minReqRightHandler[minReqCenterHandlerId], false);
+				minReqMiddleLine[minReqCenterHandlerId].fromSprite(minReqLeftHandler[minReqCenterHandlerId], minReqRightHandler[
+					minReqCenterHandlerId], false);
+
+				minReqLeftLineGraphic[minReqCenterHandlerId].clear();
+				minReqLeftLineGraphic[minReqCenterHandlerId].lineStyle(2, minReqColor, 1);
+				minReqLeftLineGraphic[minReqCenterHandlerId].moveTo(minReqLeftHandler[minReqCenterHandlerId].x, minReqLeftHandler[
+					minReqCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
+				minReqLeftLineGraphic[minReqCenterHandlerId].lineTo(minReqRightHandler[minReqCenterHandlerId - 1].x,
+					minReqRightHandler[minReqCenterHandlerId - 1].y);
+
+				minReqLeftLineGraphic[minReqCenterHandlerId + 1].clear();
+				minReqLeftLineGraphic[minReqCenterHandlerId + 1].lineStyle(2, minReqColor, 1);
+				minReqLeftLineGraphic[minReqCenterHandlerId + 1].moveTo(minReqLeftHandler[minReqCenterHandlerId + 1].x,
+					minReqLeftHandler[minReqCenterHandlerId + 1].y); //moving position of graphic if you draw mulitple lines
+				minReqLeftLineGraphic[minReqCenterHandlerId + 1].lineTo(minReqRightHandler[minReqCenterHandlerId].x,
+					minReqRightHandler[minReqCenterHandlerId].y);
+
+				minReqMiddleLineGraphic[minReqCenterHandlerId].clear();
+				minReqMiddleLineGraphic[minReqCenterHandlerId].lineStyle(2, minReqColor, 1);
+				minReqMiddleLineGraphic[minReqCenterHandlerId].moveTo(minReqLeftHandler[minReqCenterHandlerId].x,
+					minReqLeftHandler[
+						minReqCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
+				minReqMiddleLineGraphic[minReqCenterHandlerId].lineTo(minReqRightHandler[minReqCenterHandlerId].x,
+					minReqRightHandler[minReqCenterHandlerId].y);
+
+				updateConflictArea(minReqCenterHandlerId)
+			}
+		}
+
+		function minReqHandlerDragStop(handler, pointer) {
+
+			if (handler.y !== minRequiredBar[minReqCenterHandlerId].y) {
+				handler.y = minRequiredBar[minReqCenterHandlerId].y;
+			}
+
+		}
+
+		function maxReqHandlerDragStart(handler, pointer, x, y) {
+
+			maxReqHandlerStartYCoordinate = y;
+			maxRequiredBarHeight = maxRequiredBar[maxReqCenterHandlerId].height;
+		}
+
+		function maxReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+			maxReqCenterHandlerId = handler.maxReqCenterHandlerId;
+			//console.log("maxReqCenterHandlerId", maxReqCenterHandlerId);
+			maxReqDragDist = maxReqHandlerStartYCoordinate - handler.y;
+			//console.log("maxReqDragDist", maxReqDragDist);
+			if (!isNaN(maxReqDragDist)) {
+				maxRequiredBar[maxReqCenterHandlerId].height = maxRequiredBarHeight + Math.floor(maxReqDragDist / 10) * 10;
+				maxRequiredBar[maxReqCenterHandlerId].y = (Math.ceil(handler.y / 10) * 10);
+
+				maxReqRightHandler[maxReqCenterHandlerId].y = maxReqLeftHandler[maxReqCenterHandlerId].y = maxRequiredBar[
+					maxReqCenterHandlerId].y;
+
+				maxReqLeftLine[maxReqCenterHandlerId].fromSprite(maxReqLeftHandler[maxReqCenterHandlerId], maxReqRightHandler[
+					maxReqCenterHandlerId - 1], false);
+				maxReqLeftLine[maxReqCenterHandlerId + 1].fromSprite(maxReqLeftHandler[maxReqCenterHandlerId + 1],
+					maxReqRightHandler[maxReqCenterHandlerId], false);
+				maxReqMiddleLine[maxReqCenterHandlerId].fromSprite(maxReqLeftHandler[maxReqCenterHandlerId], maxReqRightHandler[
+					maxReqCenterHandlerId], false);
+
+				maxReqLeftLineGraphic[maxReqCenterHandlerId].clear();
+				maxReqLeftLineGraphic[maxReqCenterHandlerId].lineStyle(2, maxReqColor, 1);
+				maxReqLeftLineGraphic[maxReqCenterHandlerId].moveTo(maxReqLeftHandler[maxReqCenterHandlerId].x, maxReqLeftHandler[
+					maxReqCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
+				maxReqLeftLineGraphic[maxReqCenterHandlerId].lineTo(maxReqRightHandler[maxReqCenterHandlerId - 1].x,
+					maxReqRightHandler[maxReqCenterHandlerId - 1].y);
+
+				maxReqLeftLineGraphic[maxReqCenterHandlerId + 1].clear();
+				maxReqLeftLineGraphic[maxReqCenterHandlerId + 1].lineStyle(2, maxReqColor, 1);
+				maxReqLeftLineGraphic[maxReqCenterHandlerId + 1].moveTo(maxReqLeftHandler[maxReqCenterHandlerId + 1].x,
+					maxReqLeftHandler[maxReqCenterHandlerId + 1].y); //moving position of graphic if you draw mulitple lines
+				maxReqLeftLineGraphic[maxReqCenterHandlerId + 1].lineTo(maxReqRightHandler[maxReqCenterHandlerId].x,
+					maxReqRightHandler[maxReqCenterHandlerId].y);
+
+				maxReqMiddleLineGraphic[maxReqCenterHandlerId].clear();
+				maxReqMiddleLineGraphic[maxReqCenterHandlerId].lineStyle(2, maxReqColor, 1);
+				maxReqMiddleLineGraphic[maxReqCenterHandlerId].moveTo(maxReqLeftHandler[maxReqCenterHandlerId].x,
+					maxReqLeftHandler[
+						maxReqCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
+				maxReqMiddleLineGraphic[maxReqCenterHandlerId].lineTo(maxReqRightHandler[maxReqCenterHandlerId].x,
+					maxReqRightHandler[maxReqCenterHandlerId].y);
+
+				updateConflictArea(maxReqCenterHandlerId)
+			}
+		}
+
+		function maxReqHandlerDragStop(handler, pointer) {
+
+			if (handler.y !== maxRequiredBar[maxReqCenterHandlerId].y) {
+				handler.y = maxRequiredBar[maxReqCenterHandlerId].y;
+			}
+
+		}
+
+		function sickHandlerDragStart(handler, pointer, x, y) {
+
+			sickHandlerStartYCoordinate = y;
+			sickBarHeight = sickBar[sickCenterHandlerId].height;
+		}
+
+		function sickHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
+			sickCenterHandlerId = handler.sickCenterHandlerId;
+			//console.log("sickCenterHandlerId", sickCenterHandlerId);
+			sickDragDist = sickHandlerStartYCoordinate - handler.y;
+			//console.log("sickDragDist", sickDragDist);
+			if (!isNaN(sickDragDist)) {
+				sickBar[sickCenterHandlerId].height = sickBarHeight - Math.floor(sickDragDist / 10) * 10;
+				sickBar[sickCenterHandlerId].y = yAxisRef;
+
+				sickRightHandler[sickCenterHandlerId].y = sickLeftHandler[sickCenterHandlerId].y = sickBar[sickCenterHandlerId].bottom;
+
+				sickLeftLine[sickCenterHandlerId].fromSprite(sickLeftHandler[sickCenterHandlerId], sickRightHandler[
+					sickCenterHandlerId - 1], false);
+				sickLeftLine[sickCenterHandlerId + 1].fromSprite(sickLeftHandler[sickCenterHandlerId + 1], sickRightHandler[
+					sickCenterHandlerId], false);
+				sickMiddleLine[sickCenterHandlerId].fromSprite(sickLeftHandler[sickCenterHandlerId], sickRightHandler[
+					sickCenterHandlerId], false);
+
+				sickLeftLineGraphic[sickCenterHandlerId].clear();
+				sickLeftLineGraphic[sickCenterHandlerId].lineStyle(2, sickColor, 1);
+				sickLeftLineGraphic[sickCenterHandlerId].moveTo(sickLeftHandler[sickCenterHandlerId].x, sickLeftHandler[
+					sickCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
+				sickLeftLineGraphic[sickCenterHandlerId].lineTo(sickRightHandler[sickCenterHandlerId - 1].x, sickRightHandler[
+					sickCenterHandlerId - 1].y);
+
+				sickLeftLineGraphic[sickCenterHandlerId + 1].clear();
+				sickLeftLineGraphic[sickCenterHandlerId + 1].lineStyle(2, sickColor, 1);
+				sickLeftLineGraphic[sickCenterHandlerId + 1].moveTo(sickLeftHandler[sickCenterHandlerId + 1].x, sickLeftHandler[
+					sickCenterHandlerId + 1].y); //moving position of graphic if you draw mulitple lines
+				sickLeftLineGraphic[sickCenterHandlerId + 1].lineTo(sickRightHandler[sickCenterHandlerId].x, sickRightHandler[
+					sickCenterHandlerId].y);
+
+				sickMiddleLineGraphic[sickCenterHandlerId].clear();
+				sickMiddleLineGraphic[sickCenterHandlerId].lineStyle(2, sickColor, 1);
+				sickMiddleLineGraphic[sickCenterHandlerId].moveTo(sickLeftHandler[sickCenterHandlerId].x, sickLeftHandler[
+					sickCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
+				sickMiddleLineGraphic[sickCenterHandlerId].lineTo(sickRightHandler[sickCenterHandlerId].x, sickRightHandler[
+					sickCenterHandlerId].y);
+			}
+
+		}
+
+		function sickHandlerDragStop(handler, pointer) {
+
+			if (handler.y !== sickBar[sickCenterHandlerId].bottom) {
+				handler.y = sickBar[sickCenterHandlerId].bottom;
+			}
+			//updateConflictArea(sickCenterHandlerId);
+
+		}
+
+		function update() {}
+
+		function render() {
+			// game.debug.geom(positiveBounds, 'rgba(200,0,0,0.5)');
+		}
+
+		function createScale() {
+
+			xAxis = new Phaser.Line(0, yAxisRef + 1, gameWidth, yAxisRef + 1);
+			yAxis = new Phaser.Line(xAxisRef, parseInt('00', 8), xAxisRef, gameHeight);
+			var xAxisGraphics = game.add.graphics(0, 0);
+			xAxisGraphics.lineStyle(2, 0xb1b1b1);
+			xAxisGraphics.moveTo(xAxis.start.x, xAxis.start.y); // moving position of graphic if you draw mulitple lines
+			xAxisGraphics.lineTo(xAxis.end.x, xAxis.end.y);
+			xAxisGraphics.endFill();
+			var yAxisGraphics = game.add.graphics(0, 0);
+			yAxisGraphics.lineStyle(2, 0xb1b1b1);
+			yAxisGraphics.moveTo(yAxis.start.x, yAxis.start.y); // moving position of graphic if you draw mulitple lines
+			yAxisGraphics.lineTo(yAxis.end.x, yAxis.end.y);
+			yAxisGraphics.endFill();
+
+			createXAxisText();
+			createYAxisText();
+		}
+
+		function createXAxisText() {
+			var loopCounter = 1;
+			while (loopCounter <= 25) {
+				/********* X Axis Text **********/
+				xAxisScalePositions[loopCounter - 1] = [];
+				let innerLoopCounter = 0
+				/********* Loop to granularize hours into minutes (15, 30, 60) **********/
+				while (hourGranularity - 1 >= innerLoopCounter) {
+					let xTextPos = (xAxisRef + (xAxisBarWidth * (loopCounter - 1))) + (xAxisBarWidth / hourGranularity) *
+						innerLoopCounter
+
+					if (innerLoopCounter === 0 && loopCounter !== 1) { // && used to avoid printing of 0
+						xScaleText[loopCounter - 1] = game.add.text(xTextPos, yAxisRef +
+							scaleTextDistFromX, loopCounter - 1, {
+								fontSize: "22px"
+							});
+						xAxisScalePositions[loopCounter - 1].push(xTextPos);
+						xScaleText[loopCounter - 1].anchor.setTo(0.5, 0.5);
+						xScaleText[loopCounter - 1].addColor('#b1b1b1');
+					} else {
+						xAxisScalePositions[loopCounter - 1].push(xTextPos);
+					}
+
+					innerLoopCounter++;
+				}
+				loopCounter++;
+			}
+		}
+
+		function createYAxisText() {
+
+			let loopCounter = 0;
+			let positiveTextValue = 0;
+			while (loopCounter <= 5) {
+
+				let innerLoopCounter = 0
+				let granularArray = [];
+				while (innerLoopCounter < staffLevelsScale) {
+					let positiveTextYPos = (yAxisRef - ((loopCounter) * yAxisScaleWidth)) - ((yAxisScaleGranularWidth) *
+						innerLoopCounter);
+					let negativeTextYPos = yAxisRef + (loopCounter) * yAxisScaleWidth;
+
+					if (innerLoopCounter === 0 && loopCounter !== 0) { // && used to avoid printing of 0
+						positiveTextValue += staffLevelsScale;
+						yScaleTextPositive[loopCounter] = game.add.text((xAxisRef - scaleTextDistFromY), positiveTextYPos,
+							positiveTextValue, {
+								fontSize: "22px"
+							});
+						yScaleTextPositive[loopCounter].anchor.setTo(0.5, 0.5);
+						yScaleTextPositive[loopCounter].addColor('#b1b1b1');
+						granularArray.push(positiveTextYPos);
+					} else {
+						granularArray.push(positiveTextYPos);
+					}
+					innerLoopCounter++;
+				}
+				yAxisScalePositions.push(granularArray);
+				loopCounter++;
+			}
+			console.log("yAxisScalePositions", yAxisScalePositions);
+			positiveBounds.y = yAxisScalePositions[yAxisScalePositions.length - 1][0] - 10;
+			positiveBounds.height -= yAxisScalePositions[yAxisScalePositions.length - 1][0] - 10;
+		}
+
+		function indicateConflictAreas() {
+
+			let loopCounter = 1;
+			let x1, x2, y1, y2;
+			for (var eachHour in shiftData.availableLevels) {
+				y1 = shiftData.minRequiredLevels[eachHour] * barHeightScale; // y coordinate of reqLevels
+				y2 = shiftData.availableLevels[eachHour] * barHeightScale; // y coordinate of availableLevels
+
+				if (y1 > y2) {
+					x1 = xAxisRef + ((loopCounter - 1) * levelBarWidth); //x coordinate of the Hour Bar (same for both levels)
+					x2 = xAxisRef + ((loopCounter) * levelBarWidth); //(x coordinate + width) of the Hour Bar (same for both levels)
+
+					underStaffPolygon[loopCounter] = new Phaser.Polygon();
+					underStaffPolygon[loopCounter].setTo([{
+							x: x1,
+							y: yAxisRef - y1
+						},
+						{
+							x: x2,
+							y: yAxisRef - y1
+						},
+						{
+							x: x2,
+							y: yAxisRef - y2
+						},
+						{
+							x: x1,
+							y: yAxisRef - y2
+						},
+					]);
+					//console.log( underStaffPolygon[loopCounter]);
+					underStaffGraphic[loopCounter] = game.add.graphics(0, 0);
+					//underStaffGraphic[loopCounter].lineStyle(2, 0xcacacb);
+					underStaffGraphic[loopCounter].beginFill(0X9c1003);
+					underStaffGraphic[loopCounter].drawPolygon(underStaffPolygon[loopCounter].points);
+					//underStaffGraphic[loopCounter].alpha = 0.5;
+					underStaffGraphic[loopCounter].endFill();
+					polygonGroup.add(underStaffGraphic[loopCounter]);
+				}
+
+				y1 = shiftData.maxRequiredLevels[eachHour] * barHeightScale; // y coordinate of reqLevels
+				y2 = shiftData.availableLevels[eachHour] * barHeightScale; // y coordinate of availableLevels
+
+				if (y1 < y2) {
+					x1 = xAxisRef + ((loopCounter - 1) * levelBarWidth); //x coordinate of the Hour Bar (same for both levels)
+					x2 = xAxisRef + ((loopCounter) * levelBarWidth); //(x coordinate + width) of the Hour Bar (same for both levels)
+
+					overStaffPolygon[loopCounter] = new Phaser.Polygon();
+					overStaffPolygon[loopCounter].setTo([{
+							x: x1,
+							y: yAxisRef - y1
+						},
+						{
+							x: x2,
+							y: yAxisRef - y1
+						},
+						{
+							x: x2,
+							y: yAxisRef - y2
+						},
+						{
+							x: x1,
+							y: yAxisRef - y2
+						},
+					]);
+					overStaffGraphic[loopCounter] = game.add.graphics(0, 0);
+					//overStaffGraphic[loopCounter].lineStyle(2, 0xcacacb);
+					overStaffGraphic[loopCounter].beginFill(0xe3da7d);
+					overStaffGraphic[loopCounter].drawPolygon(overStaffPolygon[loopCounter].points);
+					//overStaffGraphic[loopCounter].alpha = 0.4;
+					overStaffGraphic[loopCounter].endFill();
+					polygonGroup.add(overStaffGraphic[loopCounter]);
+				}
+
+				loopCounter++;
+			}
+		}
+
+		function updateConflictArea(counter) {
+
+			console.log("in updateConflictArea");
+			let polygonExists = false;
+			if (typeof underStaffGraphic[counter] !== "undefined") {
+				underStaffGraphic[counter].clear();
+			}
+
+			if (typeof overStaffGraphic[counter] !== "undefined") {
+				overStaffGraphic[counter].clear();
+			}
+
+			let availBarY = availBar[counter].y;
+			let availBarX = availBar[counter].x;
+			let minReqBarY = minRequiredBar[counter].y;
+			let minReqBarX = minRequiredBar[counter].x;
+			let maxReqBarY = maxRequiredBar[counter].y;
+			let maxReqBarX = maxRequiredBar[counter].x;
+			let conflict;
+
+			if (availBarY > minReqBarY) {
+				conflict = "underStaff";
+			} else if (availBarY < maxReqBarY) {
+				conflict = "overStaff";
+			} else {
+				conflict = null;
+			}
+
+			switch (conflict) {
+				case "underStaff":
+					underStaffPolygon[counter] = new Phaser.Polygon();
+					underStaffPolygon[counter].setTo([{
+							x: availBarX,
+							y: availBarY
+						},
+						{
+							x: availBarX + levelBarWidth,
+							y: availBarY
+						},
+						{
+							x: minReqBarX + levelBarWidth,
+							y: minReqBarY
+						},
+						{
+							x: minReqBarX,
+							y: minReqBarY
+						},
+					]);
+					underStaffGraphic[counter] = game.add.graphics(0, 0);
+					underStaffGraphic[counter].beginFill(0X9c1003);
+					underStaffGraphic[counter].drawPolygon(underStaffPolygon[counter].points);
+					underStaffGraphic[counter].endFill();
+					polygonGroup.add(underStaffGraphic[counter]);
+					break;
+
+				case "overStaff":
+					overStaffPolygon[counter] = new Phaser.Polygon();
+					overStaffPolygon[counter].setTo([{
+							x: availBarX,
+							y: availBarY
+						},
+						{
+							x: availBarX + levelBarWidth,
+							y: availBarY
+						},
+						{
+							x: maxReqBarX + levelBarWidth,
+							y: maxReqBarY
+						},
+						{
+							x: maxReqBarX,
+							y: maxReqBarY
+						},
+					]);
+					console.log(overStaffPolygon[counter]);
+					overStaffGraphic[counter] = game.add.graphics(0, 0);
+					overStaffGraphic[counter].beginFill(0xe3da7d);
+					overStaffGraphic[counter].drawPolygon(overStaffPolygon[counter].points);
+					overStaffGraphic[counter].endFill();
+					polygonGroup.add(overStaffGraphic[counter]);
+					break;
+
+				default:
+
+			}
+		}
+
+
+		$('.onTopSelect').on('change', function () {
+			//minReqStaffLevelGroup.visible = false;
+			let activeGroup = this.value;
+			switch (activeGroup) {
+				case "avail":
+					game.world.bringToTop(availStaffLevelGroup);
+					for (var i in availCenterHandler) {
+						minReqCenterHandler[i].visible = false;
+						maxReqCenterHandler[i].visible = false;
+						availCenterHandler[i].visible = true;
+						//sickCenterHandler[i].visible = false;
+					}
+					break;
+
+				case "minReq":
+					game.world.bringToTop(minReqStaffLevelGroup);
+					for (var i in minReqCenterHandler) {
+						minReqCenterHandler[i].visible = true;
+						maxReqCenterHandler[i].visible = false;
+						availCenterHandler[i].visible = false;
+						//sickCenterHandler[i].visible = false;
+					}
+					break;
+
+				case "maxReq":
+					game.world.bringToTop(maxReqStaffLevelGroup);
+					for (var i in maxReqCenterHandler) {
+						minReqCenterHandler[i].visible = false;
+						maxReqCenterHandler[i].visible = true;
+						availCenterHandler[i].visible = false;
+						//sickCenterHandler[i].visible = false;
+					}
+					break;
+
+				case "sick":
+					game.world.bringToTop(sickStaffLevelGroup);
+					for (var i in sickCenterHandler) {
+						minReqCenterHandler[i].visible = false;
+						maxReqCenterHandler[i].visible = false;
+						availCenterHandler[i].visible = false;
+						//sickCenterHandler[i].visible = true;
+
+					}
+					break;
+
+				default:
+					game.world.bringToTop(availStaffLevelGroup);
+					game.world.bringToTop(minReqStaffLevelGroup);
+					game.world.bringToTop(maxReqStaffLevelGroup);
+					game.world.bringToTop(polygonGroup);
+					for (var i in maxReqCenterHandler) {
+						minReqCenterHandler[i].visible = false;
+						maxReqCenterHandler[i].visible = false;
+						availCenterHandler[i].visible = false;
+						//sickCenterHandler[i].visible = false;
+					}
+			}
+		});
+	</script>
+
+</body>
+
+</html>
