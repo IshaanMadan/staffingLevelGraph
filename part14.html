@@ -781,11 +781,11 @@
 			var shiftBarNextDayHandler = [];
 			var shiftBarPrevDayHandler = [];
 			var activeShiftBarWidth;
+			var shiftBarsGroup;
 
 			// minRequiredLevels vars
 			var minReqColor = 0x557d1d;
 			var minReqHandlerStartYCoordinate;
-			var minReqCenterHandlerId;
 			var minReqDragDist;
 			var minRequiredBarHeight;
 			var minRequiredBar = [];
@@ -802,7 +802,6 @@
 			// maxRequiredLevels vars
 			var maxReqColor = 0xeea2b7;
 			var maxReqHandlerStartYCoordinate;
-			var maxReqCenterHandlerId;
 			var maxReqDragDist;
 			var maxRequiredBarHeight;
 			var maxRequiredBar = [];
@@ -1150,30 +1149,18 @@
 		}
 
 		function create() {
-			console.log("staffLevelsHourGranularity", staffLevelsHourGranularity)
 			game.stage.backgroundColor = '#ffffff';
 			positiveBounds = new Phaser.Rectangle(xAxisRef, parseInt('00', 10), 24 * xAxisBarWidth, yAxisRef + 7);
 			negativeBounds = new Phaser.Rectangle(xAxisRef, yAxisRef - 4, 24 * xAxisBarWidth + 10, yAxisRef - barHeightScale);
-			loopCounter = 1;
-			sickStaffLevelGroup = game.add.group();
-			// loop to iterate over sick staff levels for each hour
-			// for (var eachHour in shiftData.sickLevels) {
-			// 	if (shiftData.sickLevels.hasOwnProperty(eachHour)) {
-			// 		createSickHourBar(shiftData.sickLevels[eachHour], loopCounter, sickLevelsLength);
-			// 		loopCounter++;
-			// 	}
-			// }
+
 
 			loopCounter = 1;
 			availStaffLevelGroup = game.add.group();
 			// loop to iterate over available staff levels for each hour
 			for (var eachHour in shiftData.availableLevels) {
-				//createAvailableHourBar(shiftData.availableLevels[loopCounter-1], loopCounter, availableLevelsLength);
 				createStaffLevelsBar(shiftData.availableLevels[loopCounter - 1], loopCounter, availableLevelsLength, "greyImage",
 					availBar, availCenterHandler, "availBar", availRightHandler, availLeftHandler, availLeftLine, availMiddleLine,
-					availLeftLineGraphic, availMiddleLineGraphic,
-					availStaffLevelGroup, availHandlerDragStart, availHandlerDragUpdate, availHandlerDragStop, availBarInputOver,
-					availBarInputOut, availColor)
+					availLeftLineGraphic, availMiddleLineGraphic, availStaffLevelGroup, availHandlerDragStart, availHandlerDragUpdate, availHandlerDragStop,availColor)
 				loopCounter++;
 			}
 
@@ -1181,11 +1168,10 @@
 			minReqStaffLevelGroup = game.add.group();
 			// loop to iterate over minRequired staff levels for each hour
 			for (var eachHour in shiftData.minRequiredLevels) {
-				// createStaffLevelsBar(shiftData.minRequiredLevels[loopCounter - 1], loopCounter, minRequiredLevelsLength,
-				// 	"transparent", minRequiredBar, minReqCenterHandler, "minReqCenterHandlerId", minReqRightHandler,
-				// 	"minReqRightHandlerId", minReqLeftHandler, "minReqLeftHandlerId", minReqLeftLine, minReqMiddleLine,
-				// 	minReqLeftLineGraphic, minReqMiddleLineGraphic, minReqStaffLevelGroup, minReqHandlerDragStart,
-				// 	minReqHandlerDragUpdate, minReqHandlerDragStop, minReqBarInputOver, minReqBarInputOut, minReqColor)
+				createStaffLevelsBar(shiftData.minRequiredLevels[loopCounter - 1], loopCounter, minRequiredLevelsLength,
+					"transparent", minRequiredBar, minReqCenterHandler, "minReqBar", minReqRightHandler, minReqLeftHandler, minReqLeftLine, minReqMiddleLine,
+					minReqLeftLineGraphic, minReqMiddleLineGraphic, minReqStaffLevelGroup, minReqHandlerDragStart,
+					minReqHandlerDragUpdate, minReqHandlerDragStop, minReqColor)
 				loopCounter++;
 			}
 
@@ -1193,18 +1179,18 @@
 			maxReqStaffLevelGroup = game.add.group();
 			// loop to iterate over maxRequired staff levels for each hour
 			for (var eachHour in shiftData.maxRequiredLevels) {
-				// createStaffLevelsBar(shiftData.maxRequiredLevels[loopCounter - 1], loopCounter, maxRequiredLevelsLength,
-				// 	"transparent", maxRequiredBar, maxReqCenterHandler, "maxReqCenterHandlerId", maxReqRightHandler,
-				// 	"maxReqRightHandlerId", maxReqLeftHandler, "maxReqLeftHandlerId", maxReqLeftLine, maxReqMiddleLine,
-				// 	maxReqLeftLineGraphic, maxReqMiddleLineGraphic, maxReqStaffLevelGroup, maxReqHandlerDragStart,
-				// 	maxReqHandlerDragUpdate, maxReqHandlerDragStop, maxReqBarInputOver, maxReqBarInputOut, maxReqColor)
+				createStaffLevelsBar(shiftData.maxRequiredLevels[loopCounter - 1], loopCounter, maxRequiredLevelsLength,
+					"transparent", maxRequiredBar, maxReqCenterHandler, "maxReqBar", maxReqRightHandler, maxReqLeftHandler, maxReqLeftLine, maxReqMiddleLine,
+					maxReqLeftLineGraphic, maxReqMiddleLineGraphic, maxReqStaffLevelGroup, maxReqHandlerDragStart,
+					maxReqHandlerDragUpdate, maxReqHandlerDragStop, maxReqColor)
 				loopCounter++;
 			}
 
 			polygonGroup = game.add.group();
+			shiftBarsGroup = game.add.group();
 			createScale();
-			//indicateConflictAreas();
-			//createMyShiftBar(shiftData.myShift);
+			indicateConflictAreas();
+			createMyShiftBar(shiftData.myShift);
 		}
 
 		function createMyShiftBar(myShiftData) {
@@ -1300,6 +1286,7 @@
 							font: "18px open"
 						});
 					myShiftbars[counter].nextOffsetText.anchor.setTo(1, 0.5);
+					shiftBarsGroup.add(myShiftbars[counter].nextOffsetText);
 				} else if (shift.exitsPrevDay) {
 					shiftBarPrevDayHandler[counter] = game.add.sprite(myShiftbars[counter].x, myShiftbars[counter].centerY,
 						'leftArrow');
@@ -1315,7 +1302,15 @@
 							font: "18px open"
 						});
 					myShiftbars[counter].prevOffsetText.anchor.setTo(0, 0.5);
+					shiftBarsGroup.add(myShiftbars[counter].prevOffsetText);
 				}
+
+				shiftBarsGroup.add(myShiftbars[counter]);
+				shiftBarsGroup.add(shiftBarLeftHandlers[counter]);
+				shiftBarsGroup.add(shiftBarRightHandlers[counter]);
+				// shiftBarsGroup.add(spriteRightHandler[counter]);
+				// shiftBarsGroup.add(spriteLeftLineGraphic[counter]);
+				// shiftBarsGroup.add(spriteMiddleLineGraphic[counter]);
 
 				counter++;
 			});
@@ -1388,7 +1383,7 @@
 			let shiftBarX = shiftBar.x
 			repositionSpriteBasedOnXGranularity(shiftBar);
 			updateShiftHandlerPosition(shiftBar);
-			getPosition(shiftBar, "drag");
+			emitPosition(shiftBar, "drag");
 			//console.log("xAxisScalePositions", xAxisScalePositions);
 		}
 
@@ -1473,11 +1468,12 @@
 			let handlerX = handler.x
 			repositionSpriteBasedOnXGranularity(handler);
 			updateShiftBarPosition(handler, handlerType);
-			getPosition(handler, "stretch");
+			emitPosition(handler, "stretch");
 		}
 
 		function repositionSpriteBasedOnXGranularity(sprite) {
-			//console.log("in repositionSpriteBasedOnXGranularity", sprite.x, sprite.right);
+			console.log("in repositionSpriteBasedOnXGranularity", sprite.x, sprite.right);
+			console.log("xAxisScalePositions", xAxisScalePositions)
 			let spriteX = sprite.x
 			let innerUpdatedFlag = false;
 			let floorDifference;
@@ -1485,10 +1481,9 @@
 				if ((spriteX > xAxisScalePositions[parentIndex][0] && xAxisScalePositions[parentIndex + 1] && spriteX <
 						xAxisScalePositions[parentIndex + 1][0]) || spriteX ==
 					xAxisScalePositions[parentIndex][0]) {
-					//console.log("parent Index", parentIndex);
+					console.log("parent Index", parentIndex);
 					xPositionArr.forEach(function (xPosition, index) {
-						if (parseFloat(spriteX.toFixed(6)) > parseFloat(xPositionArr[index].toFixed(6)) && parseFloat(spriteX.toFixed(
-								6)) < parseFloat(xPositionArr[index + 1].toFixed(6)) && xPositionArr[index + 1]) {
+						if (parseFloat(spriteX.toFixed(6)) > parseFloat(xPositionArr[index].toFixed(6)) && xPositionArr[index + 1] && parseFloat(spriteX.toFixed(6)) < parseFloat(xPositionArr[index + 1].toFixed(6))) {
 							//console.log("in if");
 							if (sprite.exitsNextDay) {
 								floorDifference = sprite.x - xPositionArr[index];
@@ -1539,21 +1534,21 @@
 				if ((spriteY < yAxisScalePositions[parentIndex][0] && yAxisScalePositions[parentIndex + 1] && spriteY >
 						yAxisScalePositions[parentIndex + 1][0]) || spriteY ==
 					yAxisScalePositions[parentIndex][0]) {
-					console.log("parent Index", parentIndex);
+					//console.log("parent Index", parentIndex);
 					yPositionArr.forEach(function (yPosition, index) {
-						console.log("child Index", index)
+						//console.log("child Index", index)
 						if (parseFloat(spriteY.toFixed(6)) < parseFloat(yPositionArr[index].toFixed(6)) && yPositionArr[index + 1] &&
 							parseFloat(spriteY.toFixed(6)) > parseFloat(yPositionArr[index + 1].toFixed(6))) {
-							console.log("in if", index);
+							//console.log("in if", index);
 							sprite.y = yPositionArr[index];
 							innerUpdatedFlag = true;
 						} else if (parseFloat(spriteY.toFixed(6)) < parseFloat(yPositionArr[index].toFixed(6)) && !yPositionArr[index +
 								1]) {
-							console.log("in else if 1", index);
+							//console.log("in else if 1", index);
 							sprite.y = yPositionArr[index];
 							innerUpdatedFlag = true;
 						} else if (parseFloat(spriteY.toFixed(6)) == parseFloat(yPositionArr[index].toFixed(6))) {
-							console.log("in else if 2", index);
+							//console.log("in else if 2", index);
 							sprite.y = yPositionArr[index];
 							innerUpdatedFlag = true;
 						} else {
@@ -1566,9 +1561,12 @@
 				}else if(spriteY < yAxisScalePositions[parentIndex][0] && !yAxisScalePositions[parentIndex + 1]){
 					sprite.y = yPositionArr[0];
 				} 
+				else if(spriteY > yAxisScalePositions[0][0]){
+					sprite.y = yAxisScalePositions[0][0];
+				}
 				else {}
 			});
-			console.log("sprite.y", sprite.y);
+			//console.log("sprite.y", sprite.y);
 		}
 
 
@@ -1647,9 +1645,9 @@
 		}
 
 
-		function getPosition(sprite, event) {
+		function emitPosition(sprite, event) {
 			let counter = sprite.counterVal;
-			//console.log("in getPosition, (myShiftbars[counter].x", myShiftbars[counter].x, myShiftbars[counter].right);
+			//console.log("in emitPosition, (myShiftbars[counter].x", myShiftbars[counter].x, myShiftbars[counter].right);
 			let barXIndex = findInXAxisScalePositions(myShiftbars[counter].x);
 			let barRightIndex = findInXAxisScalePositions(myShiftbars[counter].right);
 
@@ -1665,17 +1663,33 @@
 			}
 		}
 
-		function emitStaffLevels(sprite){
-			let counter = sprite.counterVal;
-			let barYIndex = findInYAxisScalePositions(availBar[counter].y);
-			let staffLevel = calculateStaffLevel(barYIndex)
+		function emitStaffLevels(sprite, counter, bar, levelType){
+			let barYIndex = findInYAxisScalePositions(bar[counter].y);
+			let staffLevel = calculateStaffLevel(barYIndex);
+			let timeInterval = getBarTimeIntervalOnXAxis(counter);
 			let staffLevelsInfo = {
-				levelType: "available",
-				value: staffLevel
+				levelType: levelType,
+				value: staffLevel,
+				timeInterval: timeInterval
 			}
 			console.log("staffLevelsInfo", staffLevelsInfo);
 
 		}	
+
+		function getBarTimeIntervalOnXAxis(counter){
+			let reducedCounter = --counter;		// since bar counter begins from 1 and for time calculation begins from 0
+			return {
+				startTime: {
+					hours: Math.floor(reducedCounter / staffLevelsHourGranularity),
+					minutes: (reducedCounter % staffLevelsHourGranularity) * (60 / staffLevelsHourGranularity),
+				},
+				endTime: {
+					hours: Math.floor((reducedCounter+1) / staffLevelsHourGranularity),
+					minutes: ((reducedCounter+1) % staffLevelsHourGranularity) * (60 / staffLevelsHourGranularity),
+				} 
+			}
+		}	
+			
 		function calculateStaffLevel(barYIndex){
 			return barYIndex.parentIndex * staffLevelsScale + barYIndex.childIndex;
 		}
@@ -1846,9 +1860,7 @@
 
 		function createStaffLevelsBar(hourlyLevel, counter, spriteLevelsLength, spriteImg, spriteBar, spriteCenterHandler,
 			handlerType, spriteRightHandler, spriteLeftHandler, spriteLeftLine, spriteMiddleLine, spriteLeftLineGraphic,
-			spriteMiddleLineGraphic, spriteStaffLevelGroup,
-			spriteHandlerDragStart, spriteHandlerDragUpdate, spriteHandlerDragStop, spriteBarInputOver, spriteBarInputOut,
-			spriteColor) {
+			spriteMiddleLineGraphic, spriteStaffLevelGroup,	spriteHandlerDragStart, spriteHandlerDragUpdate, spriteHandlerDragStop, spriteColor) {
 
 
 			// creating a bar sprite and positioning it according to available staff levels
@@ -1874,7 +1886,7 @@
 			spriteCenterHandler[counter].input.enableDrag(false, true);
 			spriteCenterHandler[counter].input.useHandCursor = true;
 			spriteCenterHandler[counter].input.boundsRect = positiveBounds;
-			//spriteCenterHandler[counter].visible = false;
+			spriteCenterHandler[counter].visible = false;
 
 			if (counter == 1) {
 				spriteRightHandler[counter - 1] = game.add.sprite(xAxisRef, yAxisRef, 'node');
@@ -1938,8 +1950,6 @@
 			spriteCenterHandler[counter].events.onDragStart.add(spriteHandlerDragStart);
 			spriteCenterHandler[counter].events.onDragUpdate.add(spriteHandlerDragUpdate);
 			spriteCenterHandler[counter].events.onDragStop.add(spriteHandlerDragStop);
-			spriteBar[counter].events.onInputOver.add(spriteBarInputOver);
-			spriteBar[counter].events.onInputOut.add(spriteBarInputOut);
 
 			spriteStaffLevelGroup.add(spriteBar[counter]);
 			spriteStaffLevelGroup.add(spriteCenterHandler[counter]);
@@ -1950,149 +1960,9 @@
 
 		}
 
-		function createSickHourBar(hourlyLevel, counter, sickLevelsLength) {
-
-
-			// creating a bar sprite and positioning it according to sick staff levels
-			sickBar[counter] = game.add.sprite(xAxisRef + ((counter - 1) * 30), yAxisRef, 'sky');
-			sickBar[counter].height = hourlyLevel * 10;
-			sickBar[counter].width = 30;
-			sickBar[counter].inputEnabled = true;
-			sickBar[counter].barName = "Bar-" + counter;
-			sickBar[counter].barId = counter;
-			sickBar[counter].alpha = 0.8;
-
-
-			// creating and aligning the handler to the sick bar sprite
-			sickCenterHandler[counter] = game.add.sprite(xAxisRef + ((counter - 1) * 30) + 15, yAxisRef + hourlyLevel * 10,
-				'node');
-			sickCenterHandler[counter].sickCenterHandlerId = counter;
-			sickCenterHandler[counter].anchor.set(0.5);
-			sickCenterHandler[counter].scale.setTo(0.05);
-			sickCenterHandler[counter].inputEnabled = true;
-			sickCenterHandler[counter].input.allowHorizontalDrag = false;
-			sickCenterHandler[counter].input.enableDrag(false, true);
-			sickCenterHandler[counter].input.useHandCursor = true;
-			sickCenterHandler[counter].input.boundsRect = negativeBounds;
-			sickCenterHandler[counter].visible = false;
-
-			if (counter == 1) {
-				sickRightHandler[counter - 1] = game.add.sprite(xAxisRef, yAxisRef, 'node');
-				sickRightHandler[counter - 1].sickLeftHandlerId = counter - 1;
-				sickRightHandler[counter - 1].anchor.set(0.5);
-				sickRightHandler[counter - 1].scale.setTo(0.04);
-				sickRightHandler[counter - 1].visible = false;
-			}
-
-			// creating and aligning the handler to the sick bar sprite
-			sickLeftHandler[counter] = game.add.sprite(xAxisRef + ((counter - 1) * 30), yAxisRef + hourlyLevel * 10, 'node');
-			sickLeftHandler[counter].sickLeftHandlerId = counter;
-			sickLeftHandler[counter].visible = false;
-			sickLeftHandler[counter].anchor.set(0.5);
-			sickLeftHandler[counter].scale.setTo(0.04);
-
-			// creating and aligning the handler to the sick bar sprite
-			sickRightHandler[counter] = game.add.sprite(xAxisRef + ((counter) * 30), yAxisRef + hourlyLevel * 10, 'node');
-			sickRightHandler[counter].sickRightHandlerId = counter;
-			sickRightHandler[counter].visible = false;
-			sickRightHandler[counter].anchor.set(0.5);
-			sickRightHandler[counter].scale.setTo(0.04);
-
-
-			sickLeftLine[counter] = new Phaser.Line(sickLeftHandler[counter].x, sickLeftHandler[counter].y, sickRightHandler[
-				counter - 1].x, sickRightHandler[counter - 1].y);
-			sickMiddleLine[counter] = new Phaser.Line(sickLeftHandler[counter].x, sickLeftHandler[counter].y, sickRightHandler[
-				counter].x, sickRightHandler[counter].y);
-
-			sickLeftLineGraphic[counter] = game.add.graphics(0, 0);
-			sickLeftLineGraphic[counter].lineStyle(2, sickColor, 1);
-			sickLeftLineGraphic[counter].moveTo(sickLeftHandler[counter].x, sickLeftHandler[counter].y); //moving position of graphic if you draw mulitple lines
-			sickLeftLineGraphic[counter].lineTo(sickRightHandler[counter - 1].x, sickRightHandler[counter - 1].y);
-
-			sickMiddleLineGraphic[counter] = game.add.graphics(0, 0);
-			sickMiddleLineGraphic[counter].lineStyle(2, sickColor, 1);
-			sickMiddleLineGraphic[counter].moveTo(sickLeftHandler[counter].x, sickLeftHandler[counter].y); //moving position of graphic if you draw mulitple lines
-			sickMiddleLineGraphic[counter].lineTo(sickRightHandler[counter].x, sickRightHandler[counter].y);
-
-			if (counter == sickLevelsLength) {
-				sickLeftHandler[counter + 1] = game.add.sprite(xAxisRef + ((counter) * 30), yAxisRef, 'node');
-				sickLeftHandler[counter + 1].sickLeftHandlerId = counter + 1;
-				sickLeftHandler[counter + 1].anchor.set(0.5);
-				sickLeftHandler[counter + 1].scale.setTo(0.04);
-				sickLeftHandler[counter + 1].visible = false;
-				sickLeftLine[counter + 1] = new Phaser.Line(sickLeftHandler[counter + 1].x, sickLeftHandler[counter + 1].y,
-					sickRightHandler[counter].x, sickRightHandler[counter].y);
-				sickLeftLineGraphic[counter + 1] = game.add.graphics(0, 0);
-				sickLeftLineGraphic[counter + 1].lineStyle(2, sickColor, 1);
-				sickLeftLineGraphic[counter + 1].moveTo(sickLeftHandler[counter + 1].x, sickLeftHandler[counter + 1].y); //moving position of graphic if you draw mulitple lines
-				sickLeftLineGraphic[counter + 1].lineTo(sickRightHandler[counter].x, sickRightHandler[counter].y);
-				sickStaffLevelGroup.add(sickLeftLineGraphic[counter + 1]);
-			}
-
-			// attaching events to the handler
-			sickCenterHandler[counter].events.onDragStart.add(sickHandlerDragStart);
-			sickCenterHandler[counter].events.onDragUpdate.add(sickHandlerDragUpdate);
-			sickCenterHandler[counter].events.onDragStop.add(sickHandlerDragStop);
-			sickBar[counter].events.onInputOver.add(sickBarInputOver);
-			sickBar[counter].events.onInputOut.add(sickBarInputOut);
-
-			sickStaffLevelGroup.add(sickBar[counter]);
-			sickStaffLevelGroup.add(sickCenterHandler[counter]);
-			sickStaffLevelGroup.add(sickLeftHandler[counter]);
-			sickStaffLevelGroup.add(sickRightHandler[counter]);
-			sickStaffLevelGroup.add(sickLeftLineGraphic[counter]);
-			sickStaffLevelGroup.add(sickMiddleLineGraphic[counter]);
-
-		}
-
-
-
-		function availBarInputOver(bar, pointer) {
-			//barId = bar.barId;
-			//availCenterHandler[barId].visible = true;
-		}
-
-		function availBarInputOut(bar, pointer) {
-			//barId = bar.barId;
-			//availCenterHandler[barId].visible = false;
-		}
-
-		function minReqBarInputOver(bar, pointer) {
-			//barId = bar.barId;
-			//minReqCenterHandler[barId].visible = true;
-		}
-
-		function minReqBarInputOut(bar, pointer) {
-			//barId = bar.barId;
-			//minReqCenterHandler[barId].visible = false;
-		}
-
-		function maxReqBarInputOver(bar, pointer) {
-			//barId = bar.barId;
-			//maxReqCenterHandler[barId].visible = true;
-		}
-
-		function maxReqBarInputOut(bar, pointer) {
-			//barId = bar.barId;
-			//maxReqCenterHandler[barId].visible = false;
-		}
-
-		function sickBarInputOver(bar, pointer) {
-			//barId = bar.barId;
-			//sickCenterHandler[barId].visible = true;
-		}
-
-		function sickBarInputOut(bar, pointer) {
-			//barId = bar.barId;
-			//sickCenterHandler[barId].visible = false;
-		}
-
-
-
 
 		function availHandlerDragStart(handler, pointer, x, y) {
 			let counter = handler.counterVal;
-			let handlerType = handler.handlerType;
 			availHandlerStartYCoordinate = y;
 			availBarHeight = availBar[counter].height;
 		}
@@ -2137,193 +2007,132 @@
 				availMiddleLineGraphic[counter].lineTo(availRightHandler[counter].x, availRightHandler[
 					counter].y);
 
-				//updateConflictArea(counter);
+				updateConflictArea(counter);
 			}
 
 		}
 
-
 		function availHandlerDragStop(handler, pointer) {
 			let counter = handler.counterVal;
-			let handlerType = handler.handlerType;
 			repositionSpriteBasedOnYGranularity(handler);
 			availHandlerDragUpdate(handler);		// calling function again to update line graphics, staff bar height after repositioning of handler 
-			emitStaffLevels(handler);
+			emitStaffLevels(handler, counter, availBar, "availBar");
 		}
 
 		function minReqHandlerDragStart(handler, pointer, x, y) {
-
+			let counter = handler.counterVal;
 			minReqHandlerStartYCoordinate = y;
-			minRequiredBarHeight = minRequiredBar[minReqCenterHandlerId].height;
+			minRequiredBarHeight = minRequiredBar[counter].height;
 		}
 
 		function minReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
-			minReqCenterHandlerId = handler.minReqCenterHandlerId;
-			//console.log("minReqCenterHandlerId", minReqCenterHandlerId);
+			let counter = handler.counterVal;
+			let handlerType = handler.handlerType;
 			minReqDragDist = minReqHandlerStartYCoordinate - handler.y;
 			//console.log("minReqDragDist", minReqDragDist);
 			if (!isNaN(minReqDragDist)) {
-				minRequiredBar[minReqCenterHandlerId].height = minRequiredBarHeight + Math.floor(minReqDragDist / 10) * 10;
-				minRequiredBar[minReqCenterHandlerId].y = (Math.ceil(handler.y / 10) * 10);
+				minRequiredBar[counter].height = minRequiredBarHeight + minReqDragDist;
+				minRequiredBar[counter].y = handler.y;
 
-				minReqRightHandler[minReqCenterHandlerId].y = minReqLeftHandler[minReqCenterHandlerId].y = minRequiredBar[
-					minReqCenterHandlerId].y;
+				minReqRightHandler[counter].y = minReqLeftHandler[counter].y = minRequiredBar[
+					counter].y;
 
-				minReqLeftLine[minReqCenterHandlerId].fromSprite(minReqLeftHandler[minReqCenterHandlerId], minReqRightHandler[
-					minReqCenterHandlerId - 1], false);
-				minReqLeftLine[minReqCenterHandlerId + 1].fromSprite(minReqLeftHandler[minReqCenterHandlerId + 1],
-					minReqRightHandler[minReqCenterHandlerId], false);
-				minReqMiddleLine[minReqCenterHandlerId].fromSprite(minReqLeftHandler[minReqCenterHandlerId], minReqRightHandler[
-					minReqCenterHandlerId], false);
+				minReqLeftLine[counter].fromSprite(minReqLeftHandler[counter], minReqRightHandler[
+					counter - 1], false);
+				minReqLeftLine[counter + 1].fromSprite(minReqLeftHandler[counter + 1],
+					minReqRightHandler[counter], false);
+				minReqMiddleLine[counter].fromSprite(minReqLeftHandler[counter], minReqRightHandler[
+					counter], false);
 
-				minReqLeftLineGraphic[minReqCenterHandlerId].clear();
-				minReqLeftLineGraphic[minReqCenterHandlerId].lineStyle(2, minReqColor, 1);
-				minReqLeftLineGraphic[minReqCenterHandlerId].moveTo(minReqLeftHandler[minReqCenterHandlerId].x, minReqLeftHandler[
-					minReqCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
-				minReqLeftLineGraphic[minReqCenterHandlerId].lineTo(minReqRightHandler[minReqCenterHandlerId - 1].x,
-					minReqRightHandler[minReqCenterHandlerId - 1].y);
+				minReqLeftLineGraphic[counter].clear();
+				minReqLeftLineGraphic[counter].lineStyle(2, minReqColor, 1);
+				minReqLeftLineGraphic[counter].moveTo(minReqLeftHandler[counter].x, minReqLeftHandler[
+					counter].y); //moving position of graphic if you draw mulitple lines
+				minReqLeftLineGraphic[counter].lineTo(minReqRightHandler[counter - 1].x,
+					minReqRightHandler[counter - 1].y);
 
-				minReqLeftLineGraphic[minReqCenterHandlerId + 1].clear();
-				minReqLeftLineGraphic[minReqCenterHandlerId + 1].lineStyle(2, minReqColor, 1);
-				minReqLeftLineGraphic[minReqCenterHandlerId + 1].moveTo(minReqLeftHandler[minReqCenterHandlerId + 1].x,
-					minReqLeftHandler[minReqCenterHandlerId + 1].y); //moving position of graphic if you draw mulitple lines
-				minReqLeftLineGraphic[minReqCenterHandlerId + 1].lineTo(minReqRightHandler[minReqCenterHandlerId].x,
-					minReqRightHandler[minReqCenterHandlerId].y);
+				minReqLeftLineGraphic[counter + 1].clear();
+				minReqLeftLineGraphic[counter + 1].lineStyle(2, minReqColor, 1);
+				minReqLeftLineGraphic[counter + 1].moveTo(minReqLeftHandler[counter + 1].x,
+					minReqLeftHandler[counter + 1].y); //moving position of graphic if you draw mulitple lines
+				minReqLeftLineGraphic[counter + 1].lineTo(minReqRightHandler[counter].x,
+					minReqRightHandler[counter].y);
 
-				minReqMiddleLineGraphic[minReqCenterHandlerId].clear();
-				minReqMiddleLineGraphic[minReqCenterHandlerId].lineStyle(2, minReqColor, 1);
-				minReqMiddleLineGraphic[minReqCenterHandlerId].moveTo(minReqLeftHandler[minReqCenterHandlerId].x,
+				minReqMiddleLineGraphic[counter].clear();
+				minReqMiddleLineGraphic[counter].lineStyle(2, minReqColor, 1);
+				minReqMiddleLineGraphic[counter].moveTo(minReqLeftHandler[counter].x,
 					minReqLeftHandler[
-						minReqCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
-				minReqMiddleLineGraphic[minReqCenterHandlerId].lineTo(minReqRightHandler[minReqCenterHandlerId].x,
-					minReqRightHandler[minReqCenterHandlerId].y);
+						counter].y); //moving position of graphic if you draw mulitple lines
+				minReqMiddleLineGraphic[counter].lineTo(minReqRightHandler[counter].x,
+					minReqRightHandler[counter].y);
 
-				updateConflictArea(minReqCenterHandlerId)
+				updateConflictArea(counter)
 			}
 		}
 
 		function minReqHandlerDragStop(handler, pointer) {
-
-			if (handler.y !== minRequiredBar[minReqCenterHandlerId].y) {
-				handler.y = minRequiredBar[minReqCenterHandlerId].y;
-			}
-
+			let counter = handler.counterVal;
+			repositionSpriteBasedOnYGranularity(handler);
+			minReqHandlerDragUpdate(handler);		// calling function again to update line graphics, staff bar height after repositioning of handler 
+			emitStaffLevels(handler, counter, minRequiredBar, "minReqBar");
 		}
 
 		function maxReqHandlerDragStart(handler, pointer, x, y) {
-
+			let counter = handler.counterVal;
 			maxReqHandlerStartYCoordinate = y;
-			maxRequiredBarHeight = maxRequiredBar[maxReqCenterHandlerId].height;
+			maxRequiredBarHeight = maxRequiredBar[counter].height;
 		}
 
 		function maxReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
-			maxReqCenterHandlerId = handler.maxReqCenterHandlerId;
-			//console.log("maxReqCenterHandlerId", maxReqCenterHandlerId);
+			let counter = handler.counterVal;
+			let handlerType = handler.handlerType;
 			maxReqDragDist = maxReqHandlerStartYCoordinate - handler.y;
 			//console.log("maxReqDragDist", maxReqDragDist);
 			if (!isNaN(maxReqDragDist)) {
-				maxRequiredBar[maxReqCenterHandlerId].height = maxRequiredBarHeight + Math.floor(maxReqDragDist / 10) * 10;
-				maxRequiredBar[maxReqCenterHandlerId].y = (Math.ceil(handler.y / 10) * 10);
+				maxRequiredBar[counter].height = maxRequiredBarHeight + maxReqDragDist;
+				maxRequiredBar[counter].y = handler.y;
 
-				maxReqRightHandler[maxReqCenterHandlerId].y = maxReqLeftHandler[maxReqCenterHandlerId].y = maxRequiredBar[
-					maxReqCenterHandlerId].y;
+				maxReqRightHandler[counter].y = maxReqLeftHandler[counter].y = maxRequiredBar[
+					counter].y;
 
-				maxReqLeftLine[maxReqCenterHandlerId].fromSprite(maxReqLeftHandler[maxReqCenterHandlerId], maxReqRightHandler[
-					maxReqCenterHandlerId - 1], false);
-				maxReqLeftLine[maxReqCenterHandlerId + 1].fromSprite(maxReqLeftHandler[maxReqCenterHandlerId + 1],
-					maxReqRightHandler[maxReqCenterHandlerId], false);
-				maxReqMiddleLine[maxReqCenterHandlerId].fromSprite(maxReqLeftHandler[maxReqCenterHandlerId], maxReqRightHandler[
-					maxReqCenterHandlerId], false);
+				maxReqLeftLine[counter].fromSprite(maxReqLeftHandler[counter], maxReqRightHandler[
+					counter - 1], false);
+				maxReqLeftLine[counter + 1].fromSprite(maxReqLeftHandler[counter + 1],
+					maxReqRightHandler[counter], false);
+				maxReqMiddleLine[counter].fromSprite(maxReqLeftHandler[counter], maxReqRightHandler[
+					counter], false);
 
-				maxReqLeftLineGraphic[maxReqCenterHandlerId].clear();
-				maxReqLeftLineGraphic[maxReqCenterHandlerId].lineStyle(2, maxReqColor, 1);
-				maxReqLeftLineGraphic[maxReqCenterHandlerId].moveTo(maxReqLeftHandler[maxReqCenterHandlerId].x, maxReqLeftHandler[
-					maxReqCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
-				maxReqLeftLineGraphic[maxReqCenterHandlerId].lineTo(maxReqRightHandler[maxReqCenterHandlerId - 1].x,
-					maxReqRightHandler[maxReqCenterHandlerId - 1].y);
+				maxReqLeftLineGraphic[counter].clear();
+				maxReqLeftLineGraphic[counter].lineStyle(2, maxReqColor, 1);
+				maxReqLeftLineGraphic[counter].moveTo(maxReqLeftHandler[counter].x, maxReqLeftHandler[
+					counter].y); //moving position of graphic if you draw mulitple lines
+				maxReqLeftLineGraphic[counter].lineTo(maxReqRightHandler[counter - 1].x,
+					maxReqRightHandler[counter - 1].y);
 
-				maxReqLeftLineGraphic[maxReqCenterHandlerId + 1].clear();
-				maxReqLeftLineGraphic[maxReqCenterHandlerId + 1].lineStyle(2, maxReqColor, 1);
-				maxReqLeftLineGraphic[maxReqCenterHandlerId + 1].moveTo(maxReqLeftHandler[maxReqCenterHandlerId + 1].x,
-					maxReqLeftHandler[maxReqCenterHandlerId + 1].y); //moving position of graphic if you draw mulitple lines
-				maxReqLeftLineGraphic[maxReqCenterHandlerId + 1].lineTo(maxReqRightHandler[maxReqCenterHandlerId].x,
-					maxReqRightHandler[maxReqCenterHandlerId].y);
+				maxReqLeftLineGraphic[counter + 1].clear();
+				maxReqLeftLineGraphic[counter + 1].lineStyle(2, maxReqColor, 1);
+				maxReqLeftLineGraphic[counter + 1].moveTo(maxReqLeftHandler[counter + 1].x,
+					maxReqLeftHandler[counter + 1].y); //moving position of graphic if you draw mulitple lines
+				maxReqLeftLineGraphic[counter + 1].lineTo(maxReqRightHandler[counter].x,
+					maxReqRightHandler[counter].y);
 
-				maxReqMiddleLineGraphic[maxReqCenterHandlerId].clear();
-				maxReqMiddleLineGraphic[maxReqCenterHandlerId].lineStyle(2, maxReqColor, 1);
-				maxReqMiddleLineGraphic[maxReqCenterHandlerId].moveTo(maxReqLeftHandler[maxReqCenterHandlerId].x,
+				maxReqMiddleLineGraphic[counter].clear();
+				maxReqMiddleLineGraphic[counter].lineStyle(2, maxReqColor, 1);
+				maxReqMiddleLineGraphic[counter].moveTo(maxReqLeftHandler[counter].x,
 					maxReqLeftHandler[
-						maxReqCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
-				maxReqMiddleLineGraphic[maxReqCenterHandlerId].lineTo(maxReqRightHandler[maxReqCenterHandlerId].x,
-					maxReqRightHandler[maxReqCenterHandlerId].y);
+						counter].y); //moving position of graphic if you draw mulitple lines
+				maxReqMiddleLineGraphic[counter].lineTo(maxReqRightHandler[counter].x,
+					maxReqRightHandler[counter].y);
 
-				updateConflictArea(maxReqCenterHandlerId)
+				updateConflictArea(counter)
 			}
 		}
 
 		function maxReqHandlerDragStop(handler, pointer) {
-
-			if (handler.y !== maxRequiredBar[maxReqCenterHandlerId].y) {
-				handler.y = maxRequiredBar[maxReqCenterHandlerId].y;
-			}
-
-		}
-
-		function sickHandlerDragStart(handler, pointer, x, y) {
-
-			sickHandlerStartYCoordinate = y;
-			sickBarHeight = sickBar[sickCenterHandlerId].height;
-		}
-
-		function sickHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
-			sickCenterHandlerId = handler.sickCenterHandlerId;
-			//console.log("sickCenterHandlerId", sickCenterHandlerId);
-			sickDragDist = sickHandlerStartYCoordinate - handler.y;
-			//console.log("sickDragDist", sickDragDist);
-			if (!isNaN(sickDragDist)) {
-				sickBar[sickCenterHandlerId].height = sickBarHeight - Math.floor(sickDragDist / 10) * 10;
-				sickBar[sickCenterHandlerId].y = yAxisRef;
-
-				sickRightHandler[sickCenterHandlerId].y = sickLeftHandler[sickCenterHandlerId].y = sickBar[sickCenterHandlerId].bottom;
-
-				sickLeftLine[sickCenterHandlerId].fromSprite(sickLeftHandler[sickCenterHandlerId], sickRightHandler[
-					sickCenterHandlerId - 1], false);
-				sickLeftLine[sickCenterHandlerId + 1].fromSprite(sickLeftHandler[sickCenterHandlerId + 1], sickRightHandler[
-					sickCenterHandlerId], false);
-				sickMiddleLine[sickCenterHandlerId].fromSprite(sickLeftHandler[sickCenterHandlerId], sickRightHandler[
-					sickCenterHandlerId], false);
-
-				sickLeftLineGraphic[sickCenterHandlerId].clear();
-				sickLeftLineGraphic[sickCenterHandlerId].lineStyle(2, sickColor, 1);
-				sickLeftLineGraphic[sickCenterHandlerId].moveTo(sickLeftHandler[sickCenterHandlerId].x, sickLeftHandler[
-					sickCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
-				sickLeftLineGraphic[sickCenterHandlerId].lineTo(sickRightHandler[sickCenterHandlerId - 1].x, sickRightHandler[
-					sickCenterHandlerId - 1].y);
-
-				sickLeftLineGraphic[sickCenterHandlerId + 1].clear();
-				sickLeftLineGraphic[sickCenterHandlerId + 1].lineStyle(2, sickColor, 1);
-				sickLeftLineGraphic[sickCenterHandlerId + 1].moveTo(sickLeftHandler[sickCenterHandlerId + 1].x, sickLeftHandler[
-					sickCenterHandlerId + 1].y); //moving position of graphic if you draw mulitple lines
-				sickLeftLineGraphic[sickCenterHandlerId + 1].lineTo(sickRightHandler[sickCenterHandlerId].x, sickRightHandler[
-					sickCenterHandlerId].y);
-
-				sickMiddleLineGraphic[sickCenterHandlerId].clear();
-				sickMiddleLineGraphic[sickCenterHandlerId].lineStyle(2, sickColor, 1);
-				sickMiddleLineGraphic[sickCenterHandlerId].moveTo(sickLeftHandler[sickCenterHandlerId].x, sickLeftHandler[
-					sickCenterHandlerId].y); //moving position of graphic if you draw mulitple lines
-				sickMiddleLineGraphic[sickCenterHandlerId].lineTo(sickRightHandler[sickCenterHandlerId].x, sickRightHandler[
-					sickCenterHandlerId].y);
-			}
-
-		}
-
-		function sickHandlerDragStop(handler, pointer) {
-
-			if (handler.y !== sickBar[sickCenterHandlerId].bottom) {
-				handler.y = sickBar[sickCenterHandlerId].bottom;
-			}
-			//updateConflictArea(sickCenterHandlerId);
-
+			let counter = handler.counterVal;
+			repositionSpriteBasedOnYGranularity(handler);
+			maxReqHandlerDragUpdate(handler);		// calling function again to update line graphics, staff bar height after repositioning of handler 
+			emitStaffLevels(handler, counter, maxRequiredBar, "maxReqBar");
 		}
 
 		function update() {}
@@ -2420,8 +2229,8 @@
 			let loopCounter = 1;
 			let x1, x2, y1, y2;
 			for (var eachHour in shiftData.availableLevels) {
-				y1 = shiftData.minRequiredLevels[eachHour] * barHeightScale; // y coordinate of reqLevels
-				y2 = shiftData.availableLevels[eachHour] * barHeightScale; // y coordinate of availableLevels
+				y1 = shiftData.minRequiredLevels[eachHour] * yAxisScaleGranularWidth; // y coordinate of reqLevels
+				y2 = shiftData.availableLevels[eachHour] * yAxisScaleGranularWidth; // y coordinate of availableLevels
 
 				if (y1 > y2) {
 					x1 = xAxisRef + ((loopCounter - 1) * levelBarWidth); //x coordinate of the Hour Bar (same for both levels)
@@ -2455,8 +2264,8 @@
 					polygonGroup.add(underStaffGraphic[loopCounter]);
 				}
 
-				y1 = shiftData.maxRequiredLevels[eachHour] * barHeightScale; // y coordinate of reqLevels
-				y2 = shiftData.availableLevels[eachHour] * barHeightScale; // y coordinate of availableLevels
+				y1 = shiftData.maxRequiredLevels[eachHour] * yAxisScaleGranularWidth; // y coordinate of reqLevels
+				y2 = shiftData.availableLevels[eachHour] * yAxisScaleGranularWidth; // y coordinate of availableLevels
 
 				if (y1 < y2) {
 					x1 = xAxisRef + ((loopCounter - 1) * levelBarWidth); //x coordinate of the Hour Bar (same for both levels)
@@ -2495,7 +2304,7 @@
 
 		function updateConflictArea(counter) {
 
-			console.log("in updateConflictArea");
+			//console.log("in updateConflictArea");
 			let polygonExists = false;
 			if (typeof underStaffGraphic[counter] !== "undefined") {
 				underStaffGraphic[counter].clear();
@@ -2631,6 +2440,7 @@
 					game.world.bringToTop(minReqStaffLevelGroup);
 					game.world.bringToTop(maxReqStaffLevelGroup);
 					game.world.bringToTop(polygonGroup);
+					game.world.bringToTop(shiftBarsGroup);
 					for (var i in maxReqCenterHandler) {
 						minReqCenterHandler[i].visible = false;
 						maxReqCenterHandler[i].visible = false;
