@@ -4,6 +4,7 @@
 <head>
 	<meta charset="UTF-8" />
 	<title>Phaser - Staffing Level Graph</title>
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans:400,600" rel="stylesheet">
 	<script src="//cdn.jsdelivr.net/phaser/2.6.2/phaser.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/date-fns/1.28.5/date_fns.min.js" /></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
@@ -13,6 +14,7 @@
 			margin: 0;
 			background: #e0e0e0;
 			text-align: center;
+			font-family: 'Open Sans', sans-serif;
 		}
 
 		canvas,
@@ -23,6 +25,106 @@
 			left: 0;
 			right: 0;
 			margin: auto;
+		}
+
+		.shift-position {
+			background: #fff;
+			width: 500px;
+			margin: 10px auto;
+			display: table;
+			text-align: left;
+			padding: 0 10px;
+		}
+
+		h2 {
+			margin: 5px 0;
+			font-size: 16px;
+		}
+
+		.shift-position p {
+			margin: 5px 0 10px 0;
+			font-size: 14px;
+			width: 100%;
+			float: left;
+		}
+
+		.activity-detail {
+			width: 100%;
+			position: absolute;
+			bottom: 10px;
+		}
+
+		.activity-detail ul {
+			width: 100%;
+			float: left;
+			margin: 0;
+		}
+
+		.activity-detail ul li {
+			margin: 10px 20px 10px 0px;
+			cursor: default;
+			float: left;
+			list-style: none;
+		}
+
+		.activity-detail ul li span {
+			width: 70px;
+			height: 30px;
+			display: inline-block;
+			vertical-align: middle;
+			margin-right: 5px;
+			float: none;
+			border: 2px solid transparent;
+			position: relative;
+		}
+
+		.activity-detail ul li label {
+			display: inline-block;
+			vertical-align: middle;
+			float: none;
+			word-wrap: break-word;
+			font-size: 13px;
+			color: #000;
+		}
+
+		.over-staff {
+			background: #e3da7d;
+		}
+
+		.under-staff {
+			background: #9c1003;
+		}
+
+		.max-req:before,
+		.min-req:before {
+			width: 100%;
+			height: 4px;
+			background: #e14971;
+			content: '';
+			top: 50%;
+			left: 0;
+			-ms-transform: translateY(-50%);
+			transform: translateY(-50%);
+			margin-top: -2px;
+			position: absolute;
+		}
+
+		.max-req:before {
+			background: #567d1d;
+		}
+
+		.shift {
+			background: url(http://dev.kairosplanning.com/assets/images/shift.jpg) left top repeat;
+		}
+
+		.training {
+			background: #ededee;
+		}
+
+		select {
+			height: 30px;
+			background: #fff;
+			border: 1px solid #ccc;
 		}
 	</style>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
@@ -35,8 +137,38 @@
 		<option value = "avail" >Available</option>
 		<option value = "minReq" >MinRequired</option>
 		<option value = "maxReq" >MaxRequired</option>
-		<option value = "sick" >Sick</option>
 	</select>
+	<button>View Toggle</button>
+	<div class="shift-position">
+	</div>
+	<div _ngcontent-c29="" class="activity-detail">
+		<ul _ngcontent-c29="">
+			<li _ngcontent-c29="">
+				<span _ngcontent-c29="" class="over-staff"></span>
+				<label _ngcontent-c29="">Over Staffing</label>
+			</li>
+			<li _ngcontent-c29="">
+				<span _ngcontent-c29="" class="under-staff"></span>
+				<label _ngcontent-c29="">Under Staffing</label>
+			</li>
+			<li _ngcontent-c29="">
+				<span _ngcontent-c29="" class="min-req"></span>
+				<label _ngcontent-c29="">Max Requirement</label>
+			</li>
+			<li _ngcontent-c29="">
+				<span _ngcontent-c29="" class="max-req"></span>
+				<label _ngcontent-c29="">Min Requirement</label>
+			</li>
+			<li _ngcontent-c29="">
+				<span _ngcontent-c29="" class="shift"></span>
+				<label _ngcontent-c29="">Shift</label>
+			</li>
+			<li _ngcontent-c29="">
+				<span _ngcontent-c29="" class="training"></span>
+				<label _ngcontent-c29="">Available</label>
+			</li>
+		</ul>
+	</div>
 
 	<script type="text/javascript">
 		_ = _.noConflict(); // lets call ourselves _u
@@ -150,590 +282,6 @@
 			"maxRequiredLevels": [],
 		}
 
-		var staffDataFromServer = { // to be removed upon server integration(Mock)		-- complete
-			"currentDay": 1507276403064,
-			"staffingLevelSetting": {
-				"detailLevelMinutes": 15,
-			},
-			"staffingLevelInterval": [{
-					"sequence": 0,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 5
-				},
-				{
-					"sequence": 1,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 2,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 3,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 5
-				},
-				{
-					"sequence": 4,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 5,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 6,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 7,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 8,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 9,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 10,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 11,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 12,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 13,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 14,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 15,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 16,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 17,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 18,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 19,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 20,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 21,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 22,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 23,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 24,
-					"minNoOfStaff": 12,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 25,
-					"minNoOfStaff": 12,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 26,
-					"minNoOfStaff": 12,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 27,
-					"minNoOfStaff": 12,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 28,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 29,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 30,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 31,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 32,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 33,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 34,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 35,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 9
-				},
-				{
-					"sequence": 36,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 37,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 38,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 39,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 40,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 41,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 42,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 43,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 44,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 45,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 46,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 47,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 48,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 15,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 49,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 15,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 50,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 15,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 51,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 15,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 52,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 8
-				},
-				{
-					"sequence": 53,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 8
-				},
-				{
-					"sequence": 54,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 55,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 56,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 57,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 58,
-					"minNoOfStaff": 8,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 5
-				},
-				{
-					"sequence": 59,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 11,
-					"availableNoOfStaff": 5
-				},
-				{
-					"sequence": 60,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 15,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 61,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 15,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 62,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 63,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 64,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 65,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 66,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 67,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 13,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 68,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 69,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 70,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 71,
-					"minNoOfStaff": 11,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 72,
-					"minNoOfStaff": 12,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 73,
-					"minNoOfStaff": 12,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 74,
-					"minNoOfStaff": 12,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 75,
-					"minNoOfStaff": 9,
-					"maxNoOfStaff": 14,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 76,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 14
-				},
-				{
-					"sequence": 77,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 14
-				},
-				{
-					"sequence": 78,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 13
-				},
-				{
-					"sequence": 79,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 14
-				},
-				{
-					"sequence": 80,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 4
-				},
-				{
-					"sequence": 81,
-					"minNoOfStaff": 6,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 4
-				},
-				{
-					"sequence": 82,
-					"minNoOfStaff": 6,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 4
-				},
-				{
-					"sequence": 83,
-					"minNoOfStaff": 4,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 4
-				},
-				{
-					"sequence": 84,
-					"minNoOfStaff": 6,
-					"maxNoOfStaff": 8,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 85,
-					"minNoOfStaff": 4,
-					"maxNoOfStaff": 8,
-					"availableNoOfStaff": 7
-				},
-				{
-					"sequence": 86,
-					"minNoOfStaff": 4,
-					"maxNoOfStaff": 8,
-					"availableNoOfStaff": 6
-				},
-				{
-					"sequence": 87,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 8,
-					"availableNoOfStaff": 7
-				},
-				{
-					"sequence": 88,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 89,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 10
-				},
-				{
-					"sequence": 90,
-					"minNoOfStaff": 7,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 14
-				},
-				{
-					"sequence": 91,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 9,
-					"availableNoOfStaff": 14
-				},
-				{
-					"sequence": 92,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 11
-				},
-				{
-					"sequence": 93,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 94,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 12
-				},
-				{
-					"sequence": 95,
-					"minNoOfStaff": 10,
-					"maxNoOfStaff": 12,
-					"availableNoOfStaff": 12
-				}
-			]
-		}
-
 		var staffDataFromServer = { // to be removed upon server integration(Mock)		---- partial
 			"phaseId": 1,
 			"currentDay": 1507276403064,
@@ -758,9 +306,9 @@
 			},
 			"staffingLevelInterval": [{
 					"sequence": 3,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 6,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 11,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -780,9 +328,9 @@
 				},
 				{
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 12,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -801,9 +349,9 @@
 					}
 				}, {
 					"sequence": 2,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 5,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 12,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -822,9 +370,9 @@
 					}
 				}, {
 					"sequence": 0,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 3,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 11,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -844,9 +392,9 @@
 				},
 				{
 					"sequence": 0,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 3,
+					"minNoOfStaff": 13,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 13,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -866,9 +414,9 @@
 				},
 				{
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 13,
+					"maxNoOfStaff": 16,
+					"availableNoOfStaff": 14,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -887,9 +435,9 @@
 					}
 				}, {
 					"sequence": 2,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 5,
+					"minNoOfStaff": 13,
+					"maxNoOfStaff": 16,
+					"availableNoOfStaff": 14,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -908,9 +456,9 @@
 					}
 				}, {
 					"sequence": 0,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 3,
+					"minNoOfStaff": 13,
+					"maxNoOfStaff": 16,
+					"availableNoOfStaff": 15,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -929,9 +477,9 @@
 					}
 				}, {
 					"sequence": 3,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 6,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 10,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -950,9 +498,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 10,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -971,9 +519,9 @@
 					}
 				}, {
 					"sequence": 2,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 5,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 10,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -992,9 +540,9 @@
 					}
 				}, {
 					"sequence": 0,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 3,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 9,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1013,9 +561,9 @@
 					}
 				}, {
 					"sequence": 0,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 3,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 13,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1034,9 +582,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 14,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1055,9 +603,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 12,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1076,9 +624,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 12,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1097,9 +645,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 11,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1118,9 +666,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 11,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1139,9 +687,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 12,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1160,9 +708,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 11,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1181,9 +729,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 13,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1202,9 +750,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 13,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1223,9 +771,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 15,
+					"availableNoOfStaff": 13,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1244,9 +792,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 16,
+					"availableNoOfStaff": 14,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1265,9 +813,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 15,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1286,9 +834,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 15,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1307,9 +855,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 16,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1328,9 +876,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 12,
+					"maxNoOfStaff": 14,
+					"availableNoOfStaff": 16,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1349,9 +897,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 14,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1370,9 +918,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 11,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 14,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1391,9 +939,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 13,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1412,9 +960,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 12,
+					"availableNoOfStaff": 14,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1433,9 +981,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 11,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1454,9 +1002,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 11,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1475,9 +1023,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 12,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1496,9 +1044,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 13,
+					"availableNoOfStaff": 11,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1517,9 +1065,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 7,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1538,9 +1086,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 8,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1559,9 +1107,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 10,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 8,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1580,9 +1128,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
-					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"minNoOfStaff": 9,
+					"maxNoOfStaff": 11,
+					"availableNoOfStaff": 8,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1601,9 +1149,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
+					"minNoOfStaff": 8,
 					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"availableNoOfStaff": 9,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1622,9 +1170,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
+					"minNoOfStaff": 8,
 					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"availableNoOfStaff": 9,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1643,9 +1191,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
+					"minNoOfStaff": 8,
 					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"availableNoOfStaff": 9,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1664,9 +1212,9 @@
 					}
 				}, {
 					"sequence": 1,
-					"minNoOfStaff": 5,
+					"minNoOfStaff": 7,
 					"maxNoOfStaff": 10,
-					"availableNoOfStaff": 4,
+					"availableNoOfStaff": 9,
 					"staffingLevelActivities": [],
 					"staffingLevelSkills": [],
 					"staffingLevelDuration": {
@@ -1695,13 +1243,13 @@
 			var gameWidth = 1900;
 			var gameHeight = 550;
 			var xAxisRef = 60;
-			var xAxisBarWidth = (gameWidth - xAxisRef) / 24 - 1; //each vertical bar width
-			var yAxisScaleWidth = (gameHeight - 30) / 10;
+			var xAxisBarWidth; //each vertical bar width
+			var yAxisScaleWidth;
 			var shiftBarHeight = 20;
 			var xScaleText = [];
 			var yScaleTextPositive = [];
 			var yScaleTextNegative = [];
-			var yAxisRef = 385; //multiple of 10
+			var yAxisRef;
 			var scaleTextDistFromY = 25;
 			var scaleTextDistFromX = 25;
 			var underStaffPolygon = [];
@@ -1719,9 +1267,14 @@
 			var hourGranularity = 12; // must be 1, 2, 4 or 12 
 			var staffLevelsHourGranularity; // must be 1, 2, or 4
 			var levelBarWidth;
-			var granularWidth = xAxisBarWidth / hourGranularity;
-			var staffLevelsScale = 3;
-			var yAxisScaleGranularWidth = yAxisScaleWidth / staffLevelsScale;
+			var granularWidth;
+			var staffLevelsScale;
+			var maxStaffLevelsScale;
+			var yAxisScaleGranularWidth;
+			var upScaleText, downScaleText;
+			var precisionView = false;
+			var maxStaffNumber = 182;
+			var scaleAlterVal;
 
 			//mockStaffLevels();
 
@@ -1731,7 +1284,7 @@
 			var shiftBarRightHandlers = [];
 			var shiftBarOnClickIntitialXPosition = {};
 			var shiftHandlersWidth = 6;
-			var minimumShiftLength = xAxisBarWidth / 4;
+			var minimumShiftLength;
 			var shiftBarNextDayHandler = [];
 			var shiftBarPrevDayHandler = [];
 			var activeShiftBarWidth;
@@ -1830,7 +1383,7 @@
 				"date": new Date(),
 				"dummy": true,
 				"currentPhase": "Puzzle",
-				"editable": false,
+				"editable": true,
 				"id": 2,
 				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 00), 1),
 				"created": false,
@@ -1855,9 +1408,9 @@
 				"currentPhase": "Puzzle",
 				"editable": true,
 				"id": 4554,
-				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 6, 00), 0),
+				"startDate": dateFns.subDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 11, 10), 0),
 				"created": false,
-				"endDate": dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 8, 10), 0),
+				"endDate": dateFns.addDays(new Date(today.getFullYear(), today.getMonth(), today.getDate(), 14, 20), 0),
 				"formattedActivityName": "Morning Day",
 				"formattedStartDate": "",
 				"formattedEndDate": "",
@@ -2052,10 +1605,6 @@
 				shiftData.minRequiredLevels = [];
 				shiftData.maxRequiredLevels = [];
 			}
-			availableLevelsLength = shiftData.availableLevels.length;
-			minRequiredLevelsLength = shiftData.minRequiredLevels.length;
-			maxRequiredLevelsLength = shiftData.maxRequiredLevels.length;
-			levelBarWidth = xAxisBarWidth / staffLevelsHourGranularity;
 		}
 
 		function addPhaserSequence(staffLevelsHourGranularity, staffingLevelDuration) {
@@ -2153,6 +1702,42 @@
 			render: render
 		});
 
+		function calculateVariablesValue() {
+			
+			yAxisScalePositions = [];
+			xAxisBarWidth = (gameWidth - xAxisRef) / 24 - 1; //each vertical bar width
+			scaleAlterVal = getScaleAlterVal(maxStaffNumber);
+			
+			
+			if (precisionView) {
+				yAxisScaleWidth = (gameHeight - 40) / 14;
+				yAxisRef = (yAxisScaleWidth * 10) + 15;
+			} else {				
+				yAxisScaleWidth = (gameHeight - 30) / 10;
+				yAxisRef = (yAxisScaleWidth * 7) + 15;
+				staffLevelsScale = maxStaffLevelsScale =  Math.ceil(maxStaffNumber / 7);
+			}
+			granularWidth = xAxisBarWidth / hourGranularity;
+			yAxisScaleGranularWidth = yAxisScaleWidth / staffLevelsScale;
+			minimumShiftLength = xAxisBarWidth / 4;
+			availableLevelsLength = shiftData.availableLevels.length;
+			minRequiredLevelsLength = shiftData.minRequiredLevels.length;
+			maxRequiredLevelsLength = shiftData.maxRequiredLevels.length;
+			levelBarWidth = xAxisBarWidth / staffLevelsHourGranularity;
+		}
+
+		function getScaleAlterVal(maxStaffValue){
+			if(maxStaffValue <= 50){
+				return 2;
+			}
+			else if(maxStaffValue <= 200){
+				return 5;
+			}
+			else{
+				return 10;
+			}
+
+		}
 		function preload() {
 			game.load.image('greyImage', './assets/greyImage.jpg');
 			game.load.image('transparent', './assets/transparent.png');
@@ -2166,11 +1751,10 @@
 		}
 
 		function create() {
-			console.log("granularWidth", granularWidth)
+			calculateVariablesValue();
 			game.stage.backgroundColor = '#ffffff';
 			positiveBounds = new Phaser.Rectangle(xAxisRef, parseInt('00', 10), 24 * xAxisBarWidth, yAxisRef + 7);
 			negativeBounds = new Phaser.Rectangle(xAxisRef, yAxisRef - 4, 24 * xAxisBarWidth + 10, yAxisRef - shiftBarHeight);
-
 
 			loopCounter = 1;
 			availStaffLevelGroup = game.add.group();
@@ -2212,7 +1796,16 @@
 			createScale();
 			indicateConflictAreas();
 			createMyShiftBar(shiftData.myShift);
-			createButtons();
+			if (precisionView) {
+				createButtons();
+				game.input.mouse.mouseWheelCallback = mouseWheel;
+				game.world.setBounds(0, positiveBounds.y - 15, gameWidth, gameHeight + (-positiveBounds.y - 15));
+			}
+			else{
+				game.world.setBounds(0, 0, gameWidth, gameHeight);
+				game.input.mouse.mouseWheelCallback = null;
+			}
+
 		}
 
 		function createMyShiftBar(myShiftData) {
@@ -2248,7 +1841,7 @@
 				if (shift.editable) {
 
 					shiftBarLeftHandlers[counter] = game.add.sprite(myShiftbars[counter].x, myShiftbars[counter].centerY,
-						'sky');
+						'transparent');
 					shiftBarLeftHandlers[counter].counterVal = counter;
 					shiftBarLeftHandlers[counter].handlerType = "left";
 					if (shift.exitsNextDay) {
@@ -2273,7 +1866,7 @@
 
 					// creating and aligning the handler to the shift bar sprite
 					shiftBarRightHandlers[counter] = game.add.sprite(myShiftbars[counter].right, myShiftbars[counter].centerY,
-						'sky');
+						'transparent');
 					shiftBarRightHandlers[counter].counterVal = counter;
 					shiftBarRightHandlers[counter].handlerType = "right";
 					shiftBarRightHandlers[counter].anchor.set(1, 0.5);
@@ -2681,6 +2274,15 @@
 				let shiftTimeInfo = getCalculatedTimeFromIndexes(barXIndex, barRightIndex, counter, event);
 				shiftTimeInfo.shiftId = myShiftbars[counter].shiftId;
 				console.log("shiftTimeInfo", shiftTimeInfo);
+				let html =
+					`
+				<h2>Shift Data</h2>
+				<p><b>Start Time:</b> ${shiftTimeInfo.startDate} </p>
+				<p><b>End Time:</b> ${shiftTimeInfo.endDate}</p>
+				
+				
+				`;
+				$(".shift-position").html(html)
 			} else {
 				alert("Both Indexes Not Present")
 			}
@@ -2696,6 +2298,16 @@
 					value: staffLevel,
 					timeInterval: timeInterval
 				}
+				let html =
+					`
+				<h2>Staff Level Data</h2>
+				<p><b>Level Type:</b> ${staffLevelsInfo.levelType} </p>
+				<p><b>Value:</b> ${staffLevelsInfo.value}</p>
+				<p><b>Time Interval:</b> ${staffLevelsInfo.timeInterval.startTime.hours}:${staffLevelsInfo.timeInterval.startTime.minutes} to ${staffLevelsInfo.timeInterval.endTime.hours}:${staffLevelsInfo.timeInterval.endTime.minutes}</p>
+				
+				
+				`;
+				$(".shift-position").html(html)
 				console.log("staffLevelsInfo", staffLevelsInfo);
 			} else {
 				alert("barYIndex Not Present")
@@ -2855,9 +2467,8 @@
 				myShiftbars[counter].nextOffsetText.text = nextText;
 
 			} else if (myShiftbars[counter].exitsPrevDay) { // sub prev day offset Time		
-
 				startTime.setHours(myShiftbars[counter].startDateObj.getHours(), myShiftbars[counter].startDateObj.getMinutes());
-				startTime.setDate(myShiftbars[counter].startDateObj.getDate())
+				startTime.setDate(startTime.getDate() - 1)
 			}
 		}
 
@@ -2889,7 +2500,6 @@
 			handlerType, spriteRightHandler, spriteLeftHandler, spriteLeftLine, spriteMiddleLine, spriteLeftLineGraphic,
 			spriteMiddleLineGraphic, spriteStaffLevelGroup, spriteHandlerDragStart, spriteHandlerDragUpdate,
 			spriteHandlerDragStop, spriteColor) {
-
 
 			// creating a bar sprite and positioning it according to available staff levels
 			spriteBar[counter] = game.add.sprite(xAxisRef + ((counter - 1) * levelBarWidth), yAxisRef - hourlyLevel *
@@ -3044,7 +2654,7 @@
 			let counter = handler.counterVal;
 			repositionSpriteBasedOnYGranularity(handler);
 			availHandlerDragUpdate(handler); // calling function again to update line graphics, staff bar height after repositioning of handler 
-			emitStaffLevels(handler, counter, availBar, "availBar");
+			emitStaffLevels(handler, counter, availBar, "Available Bar");
 		}
 
 		function minReqHandlerDragStart(handler, pointer, x, y) {
@@ -3102,7 +2712,7 @@
 			let counter = handler.counterVal;
 			repositionSpriteBasedOnYGranularity(handler);
 			minReqHandlerDragUpdate(handler); // calling function again to update line graphics, staff bar height after repositioning of handler 
-			emitStaffLevels(handler, counter, minRequiredBar, "minReqBar");
+			emitStaffLevels(handler, counter, minRequiredBar, "Minimum Bar");
 		}
 
 		function maxReqHandlerDragStart(handler, pointer, x, y) {
@@ -3160,10 +2770,28 @@
 			let counter = handler.counterVal;
 			repositionSpriteBasedOnYGranularity(handler);
 			maxReqHandlerDragUpdate(handler); // calling function again to update line graphics, staff bar height after repositioning of handler 
-			emitStaffLevels(handler, counter, maxRequiredBar, "maxReqBar");
+			emitStaffLevels(handler, counter, maxRequiredBar, "Maximum bar");
 		}
 
-		function update() {}
+		function mouseWheel(event) {
+			console.log("sdsfs")
+			let cameraMovement = 200;
+			if (game.input.mouse.wheelDelta === Phaser.Mouse.WHEEL_UP) {
+				game.camera.y -= cameraMovement;
+			} else {
+				game.camera.y += cameraMovement;
+			}
+		}
+
+		function update() {
+			// if (precisionView) {
+			// 	if (cursors.up.isDown) {
+			// 		game.camera.y -= cameraMovement;
+			// 	} else if (cursors.down.isDown) {
+			// 		game.camera.y += cameraMovement;
+			// 	}
+			// }
+		}
 
 		function render() {
 			//game.debug.geom(positiveBounds, 'rgba(200,0,0,0.5)');
@@ -3171,8 +2799,11 @@
 
 		function createScale() {
 
+			createXAxisText();
+			createYAxisText();
+
 			xAxis = new Phaser.Line(0, yAxisRef + 1, gameWidth, yAxisRef + 1);
-			yAxis = new Phaser.Line(xAxisRef, parseInt('00', 8), xAxisRef, gameHeight);
+			yAxis = new Phaser.Line(xAxisRef, positiveBounds.y, xAxisRef, game.world.bottom);
 			var xAxisGraphics = game.add.graphics(0, 0);
 			xAxisGraphics.lineStyle(2, 0xb1b1b1);
 			xAxisGraphics.moveTo(xAxis.start.x, xAxis.start.y); // moving position of graphic if you draw mulitple lines
@@ -3183,9 +2814,6 @@
 			yAxisGraphics.moveTo(yAxis.start.x, yAxis.start.y); // moving position of graphic if you draw mulitple lines
 			yAxisGraphics.lineTo(yAxis.end.x, yAxis.end.y);
 			yAxisGraphics.endFill();
-
-			createXAxisText();
-			createYAxisText();
 		}
 
 		function createXAxisText() {
@@ -3221,7 +2849,7 @@
 
 			let loopCounter = 0;
 			let positiveTextValue = 0;
-			while (loopCounter <= 7) {
+			while (positiveTextValue < maxStaffNumber) {
 
 				let innerLoopCounter = 0
 				let granularArray = [];
@@ -3426,19 +3054,39 @@
 		}
 
 		function createButtons() {
+			downScaleText = game.add.text(game.world.right - 100, 50, ' - ',{
+							font: "40px open",
+							backgroundColor: "#bcbfc3" 
+						});
+			downScaleText.type = "DOWN";
+			downScaleText.inputEnabled = true;
+			downScaleText.events.onInputDown.add(actionOnClick, this);
+			downScaleText.fixedToCamera = true;
+			//downScaleText.scale.setTo(3)
 
-			button = game.add.button(300, 400, 'sky', actionOnClick);
-			button.scale.setTo(0.05)
+			upScaleText = game.add.text(game.world.right - 170, 50, ' + ', {
+							font: "40px open",
+							backgroundColor: "#bcbfc3" 
+						});
+			upScaleText.type = "UP";
+			upScaleText.inputEnabled = true;
+			upScaleText.events.onInputDown.add(actionOnClick, this);
+			upScaleText.fixedToCamera = true;
+			//upScaleText.scale.setTo(3)
 		}
 
-		function actionOnClick() {
+		function actionOnClick(button) {
 
-			console.log('click');
+			console.log('button', button);
+			let buttonType = button.type;
+			if (buttonType == "UP" && (staffLevelsScale + scaleAlterVal < maxStaffLevelsScale)) {
+				staffLevelsScale += scaleAlterVal;
 
-			button.inputEnabled = false;
+			} else if (buttonType == "DOWN" && (staffLevelsScale - scaleAlterVal > scaleAlterVal)) {
+				staffLevelsScale -= scaleAlterVal;
+			}
 
-			// this.game.canvas.style.cursor = "default";
-
+			game.state.start(game.state.current, true, false);
 		}
 
 		$('.onTopSelect').on('change', function () {
@@ -3499,6 +3147,18 @@
 						//sickCenterHandler[i].visible = false;
 					}
 			}
+		});
+
+		$('button').on("click", function () {
+			if (precisionView) {
+				precisionView = false;
+				gameHeight = 550;
+			} else {
+				precisionView = true;
+				gameHeight = 1500;
+			}
+			game.scale.setGameSize(gameWidth, gameHeight);
+			game.state.start(game.state.current, true, false);
 		});
 	</script>
 
