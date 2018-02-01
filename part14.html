@@ -20,7 +20,7 @@
 		canvas,
 		iframe {
 			position: absolute;
-			top: 0;
+			top: 130px;
 			bottom: 0;
 			left: 0;
 			right: 0;
@@ -133,10 +133,10 @@
 <body>
 	<p>Select to Edit a Layer</p>
 	<select class="onTopSelect">
-		<option value = "" selected>None</option>
-		<option value = "avail" >Available</option>
-		<option value = "minReq" >MinRequired</option>
-		<option value = "maxReq" >MaxRequired</option>
+		<option value="" selected>None</option>
+		<option value="avail">Available</option>
+		<option value="minReq">MinRequired</option>
+		<option value="maxReq">MaxRequired</option>
 	</select>
 	<button>View Toggle</button>
 	<div class="shift-position">
@@ -1265,16 +1265,20 @@
 			var xAxis;
 			var yAxis;
 			var hourGranularity = 12; // must be 1, 2, 4 or 12 
-			var staffLevelsHourGranularity; // must be 1, 2, or 4
+			var staffLevelsHourGranularity = 4; // must be 1, 2, or 4
 			var levelBarWidth;
 			var granularWidth;
 			var staffLevelsScale;
 			var maxStaffLevelsScale;
 			var yAxisScaleGranularWidth;
-			var upScaleText, downScaleText;
+			var upScaleText;
+			var downScaleText;
 			var precisionView = false;
-			var maxStaffNumber = 182;
+			var maxStaffNumber = 80;
 			var scaleAlterVal;
+			var activeHandler;
+			var toolTipText;
+			var goToBottom;
 
 			//mockStaffLevels();
 
@@ -1695,7 +1699,7 @@
 			return Math.floor(minutes / roundTo) * roundTo;
 		}
 
-		var game = new Phaser.Game(gameWidth, gameHeight, Phaser.AUTO, 'graph-chart-container-section', {
+		var game = new Phaser.Game(gameWidth, gameHeight, Phaser.CANVAS, 'graph-chart-container-section', {
 			preload: preload,
 			create: create,
 			update: update,
@@ -1703,19 +1707,22 @@
 		});
 
 		function calculateVariablesValue() {
-			
+			/**** For local Phaser and not for kairos ****/
+			$("select").val("");
+			$(".shift-position").html('');
+			/*********************************************/
 			yAxisScalePositions = [];
 			xAxisBarWidth = (gameWidth - xAxisRef) / 24 - 1; //each vertical bar width
 			scaleAlterVal = getScaleAlterVal(maxStaffNumber);
-			
-			
+
+
 			if (precisionView) {
-				yAxisScaleWidth = (gameHeight - 40) / 14;
-				yAxisRef = (yAxisScaleWidth * 10) + 15;
-			} else {				
+				yAxisScaleWidth = (gameHeight - 80) / 14;
+				yAxisRef = (yAxisScaleWidth * 10) + 40;
+			} else {
 				yAxisScaleWidth = (gameHeight - 30) / 10;
 				yAxisRef = (yAxisScaleWidth * 7) + 15;
-				staffLevelsScale = maxStaffLevelsScale =  Math.ceil(maxStaffNumber / 7);
+				staffLevelsScale = maxStaffLevelsScale = Math.ceil(maxStaffNumber / 7);
 			}
 			granularWidth = xAxisBarWidth / hourGranularity;
 			yAxisScaleGranularWidth = yAxisScaleWidth / staffLevelsScale;
@@ -1726,18 +1733,17 @@
 			levelBarWidth = xAxisBarWidth / staffLevelsHourGranularity;
 		}
 
-		function getScaleAlterVal(maxStaffValue){
-			if(maxStaffValue <= 50){
+		function getScaleAlterVal(maxStaffValue) {
+			if (maxStaffValue <= 50) {
 				return 2;
-			}
-			else if(maxStaffValue <= 200){
+			} else if (maxStaffValue <= 200) {
 				return 5;
-			}
-			else{
+			} else {
 				return 10;
 			}
 
 		}
+
 		function preload() {
 			game.load.image('greyImage', './assets/greyImage.jpg');
 			game.load.image('transparent', './assets/transparent.png');
@@ -1796,15 +1802,17 @@
 			createScale();
 			indicateConflictAreas();
 			createMyShiftBar(shiftData.myShift);
+			createToolTip();
 			if (precisionView) {
-				createButtons();
+				createScaleButtons();
 				game.input.mouse.mouseWheelCallback = mouseWheel;
-				game.world.setBounds(0, positiveBounds.y - 15, gameWidth, gameHeight + (-positiveBounds.y - 15));
-			}
-			else{
+				game.world.setBounds(0, positiveBounds.y - 40, gameWidth, (gameHeight + Math.abs(positiveBounds.y) + 40));
+			} else {
 				game.world.setBounds(0, 0, gameWidth, gameHeight);
 				game.input.mouse.mouseWheelCallback = null;
 			}
+			console.log("game.camera.height", game.camera.height)
+			game.camera.y = 0
 
 		}
 
@@ -1982,7 +1990,9 @@
 			console.log("inside shiftBarDragStart ")
 			shiftBarOnClickIntitialXPosition = {
 				x: shift.x,
-				right: shift.right
+				right: shift.right,
+				width: shift.width,
+				exitsNextDay: shift.exitsNextDay,
 			}
 			activeShiftBarWidth = shift.width;
 		}
@@ -1995,11 +2005,17 @@
 		}
 
 		function shiftBarDragStop(shiftBar, pointer, x, y) {
-			let shiftBarX = shiftBar.x
+			let shiftBarX = shiftBar.x;
+			console.log("shiftBar.x", shiftBar.x)
 			repositionSpriteBasedOnXGranularity(shiftBar);
 			updateShiftHandlerPosition(shiftBar);
-			emitPosition(shiftBar, "drag");
-			//console.log("xAxisScalePositions", xAxisScalePositions);
+			let isOverLapping = isShiftBarOverlapping(shiftBar);
+			if(!isOverLapping){
+				emitPosition(shiftBar, "drag");
+			}
+			else{
+				alert("shift is overlapping")
+			}
 		}
 
 
@@ -2069,7 +2085,9 @@
 			let counter = handler.counterVal;
 			shiftBarOnClickIntitialXPosition = {
 				x: myShiftbars[counter].x,
-				right: myShiftbars[counter].right
+				right: myShiftbars[counter].right,
+				width: myShiftbars[counter].width,
+				exitsNextDay: myShiftbars[counter].exitsNextDay,
 			}
 		}
 
@@ -2081,9 +2099,56 @@
 		function shiftHandleDragStop(handler, pointer, x, y) {
 			let handlerType = handler.handlerType;
 			let handlerX = handler.x
+			let counter = handler.counterVal;
 			repositionSpriteBasedOnXGranularity(handler);
 			updateShiftBarPosition(handler, handlerType);
-			emitPosition(handler, "stretch");
+			let isOverLapping = isShiftBarOverlapping(myShiftbars[counter]);
+			if(!isOverLapping){
+				emitPosition(handler, "stretch");
+			}
+			else{
+				alert("shift is overlapping")
+			}
+		}
+
+		function isShiftBarOverlapping(activeShiftBar) {
+			let isOverLapping = false;
+			for (let counter = 1; counter < myShiftbars.length; counter++) { // myShiftbars list starts from index 1
+				if (myShiftbars[counter] && myShiftbars[counter].shiftId !== activeShiftBar.shiftId) {
+					if (checkOverlap(myShiftbars[counter], activeShiftBar)) {
+						isOverLapping = true;
+						break;
+					}
+				}
+			}
+			isOverLapping && (revertSpritePosition(activeShiftBar, shiftBarOnClickIntitialXPosition));
+			return isOverLapping;
+		}
+
+		function revertSpritePosition(activeShiftBar, intialShiftPosition){
+			activeShiftBar.right = intialShiftPosition.right;
+			activeShiftBar.x = intialShiftPosition.x;
+			activeShiftBar.width = intialShiftPosition.width;
+			if(intialShiftPosition.exitsNextDay){
+				//let counter = activeShiftBar.counterVal;
+				//shiftBarNextDayHandler[counter].visible = true;
+			}
+			updateShiftHandlerPosition(activeShiftBar);
+		}
+
+		function checkOverlap(spriteA, spriteB) {
+			var boundsA = spriteA.getBounds();
+			var boundsB = spriteB.getBounds();
+
+			/*** WorkAround - To decrease bounds by a pixel to enable shifts to start at the same time, else the "intersects" method will give true*/
+			boundsA.x -= 1;
+			boundsB.x -= 1;
+			boundsA.right -= 1;
+			boundsB.right -= 1;
+			boundsA.width -= 2; 
+			boundsB.width -= 2; 
+			/***********************/
+			return Phaser.Rectangle.intersects(boundsA, boundsB);
 		}
 
 		function repositionSpriteBasedOnXGranularity(sprite) {
@@ -2153,7 +2218,7 @@
 					yAxisScalePositions[parentIndex][0]) {
 					//console.log("parent Index", parentIndex);
 					yPositionArr.forEach(function (yPosition, index) {
-						//console.log("child Index", index)
+						//console.log("child Index", index, parseFloat(spriteY.toFixed(6)), parseFloat(yPositionArr[index].toFixed(6)))
 						if (parseFloat(spriteY.toFixed(6)) < parseFloat(yPositionArr[index].toFixed(6)) && yPositionArr[index + 1] &&
 							parseFloat(spriteY.toFixed(6)) > parseFloat(yPositionArr[index + 1].toFixed(6))) {
 							//console.log("in if", index);
@@ -2185,6 +2250,68 @@
 			//console.log("sprite.y", sprite.y);
 		}
 
+		function getToolTipPositionFromYGranularity(sprite) {
+			//console.log("in repositionSpriteBasedOnYGranularityForToolTip", sprite.y);
+			//console.log("yAxisScalePositions", yAxisScalePositions);
+			let spriteY = sprite.y
+			let innerUpdatedFlag = false;
+			let floorDifference;
+			for (let parentIndex = 0; parentIndex < yAxisScalePositions.length; parentIndex++) {
+				let yPositionArr = yAxisScalePositions[parentIndex];
+				if ((spriteY < yAxisScalePositions[parentIndex][0] && yAxisScalePositions[parentIndex + 1] && spriteY >
+						yAxisScalePositions[parentIndex + 1][0]) || spriteY ==
+					yAxisScalePositions[parentIndex][0]) {
+					//console.log("parent Index", parentIndex);
+					for (let index = 0, length = yPositionArr.length; index < length; index++) {
+						//console.log("child Index", index, parseFloat(spriteY.toFixed(6)), parseFloat(yPositionArr[index].toFixed(6)))
+						if (parseFloat(spriteY.toFixed(6)) < parseFloat(yPositionArr[index].toFixed(6)) && yPositionArr[index + 1] &&
+							parseFloat(spriteY.toFixed(6)) > parseFloat(yPositionArr[index + 1].toFixed(6))) {
+							//console.log("in if", index);
+							innerUpdatedFlag = true;
+							return {
+								parentIndex: parentIndex,
+								childIndex: index
+							};
+						} else if (parseFloat(spriteY.toFixed(6)) < parseFloat(yPositionArr[index].toFixed(6)) && !yPositionArr[
+								index +
+								1]) {
+							//console.log("in else if 1", index);
+							innerUpdatedFlag = true;
+							return {
+								parentIndex: parentIndex,
+								childIndex: index
+							};
+						} else if (parseFloat(spriteY.toFixed(6)) == parseFloat(yPositionArr[index].toFixed(6))) {
+							//console.log("in else if 2", index);
+							innerUpdatedFlag = true;
+							return {
+								parentIndex: parentIndex,
+								childIndex: index
+							};
+						} else {
+							//console.log("in else");
+						}
+					};
+					if (!innerUpdatedFlag) {
+						return {
+							parentIndex: yPositionArr.length - 1,
+							childIndex: 0
+						};
+					}
+				} else if (spriteY < yAxisScalePositions[parentIndex][0] && !yAxisScalePositions[parentIndex + 1]) {
+					return {
+						parentIndex: parentIndex,
+						childIndex: 0
+					};
+				} else if (spriteY > yAxisScalePositions[0][0]) {
+					return {
+						parentIndex: 0,
+						childIndex: 0
+					};
+				} else {}
+			};
+			//console.log("sprite.y", sprite.y);
+		}
 
 		function findInXAxisScalePositions(val) {
 			let spriteX = Math.ceil(val)
@@ -2214,13 +2341,16 @@
 		}
 
 		function findInYAxisScalePositions(val) {
-			let spriteY = Math.ceil(val)
-			let spriteYFloored = Math.floor(val)
+			let spriteY = parseFloat(val.toFixed(6))
+			//let spriteYFloored = Math.floor(val)
+			//console.log("in findInYAxisScalePositions", val,spriteY);
 			for (let i = 0, length = yAxisScalePositions.length; i < length; i++) {
-				if (spriteY < yAxisScalePositions[i][0] && yAxisScalePositions[i + 1] && spriteY > yAxisScalePositions[i + 1][0] ||
-					spriteY == yAxisScalePositions[i][0]) {
+				if (spriteY < parseFloat(yAxisScalePositions[i][0].toFixed(6)) && yAxisScalePositions[i + 1] && spriteY >
+					parseFloat(yAxisScalePositions[i + 1][0].toFixed(6)) ||
+					spriteY == parseFloat(yAxisScalePositions[i][0].toFixed(6))) {
 					for (let j = 0, len = yAxisScalePositions[i].length; j < len; j++) {
-						if (spriteY == Math.ceil(yAxisScalePositions[i][j]) || spriteYFloored == Math.ceil(yAxisScalePositions[i][j])) {
+						//console.log("i, spriteY, parseFloat(yAxisScalePositions[i][j])", i, spriteY, parseFloat(yAxisScalePositions[i][j].toFixed(6)))
+						if (spriteY == parseFloat(yAxisScalePositions[i][j].toFixed(6))) {
 							return {
 								parentIndex: i,
 								childIndex: j
@@ -2228,7 +2358,7 @@
 						}
 					};
 				} else if (!(yAxisScalePositions[i + 1])) {
-					if (spriteY == Math.ceil(yAxisScalePositions[i][0]) || spriteYFloored == Math.ceil(yAxisScalePositions[i][0])) {
+					if (spriteY == parseFloat(yAxisScalePositions[i][0].toFixed(6))) {
 						return {
 							parentIndex: i,
 							childIndex: 0
@@ -2298,6 +2428,7 @@
 					value: staffLevel,
 					timeInterval: timeInterval
 				}
+				updateStaffLevelInGlobalObject(staffLevelsInfo, counter)
 				let html =
 					`
 				<h2>Staff Level Data</h2>
@@ -2313,6 +2444,17 @@
 				alert("barYIndex Not Present")
 			}
 
+		}
+
+		function updateStaffLevelInGlobalObject(staffLevelsInfo, counter) {
+			if (staffLevelsInfo.levelType == "maxReqBar") {
+				shiftData.maxRequiredLevels[counter - 1] = staffLevelsInfo.value
+			} else if (staffLevelsInfo.levelType == "minReqBar") {
+				shiftData.minRequiredLevels[counter - 1] = staffLevelsInfo.value
+			} else if (staffLevelsInfo.levelType == "availBar") {
+				shiftData.availableLevels[counter - 1] = staffLevelsInfo.value
+			}
+			console.log("staffLevelsInfo, counter", staffLevelsInfo, counter);
 		}
 
 		function getBarTimeIntervalOnXAxis(counter) {
@@ -2588,6 +2730,8 @@
 			spriteCenterHandler[counter].events.onDragStart.add(spriteHandlerDragStart);
 			spriteCenterHandler[counter].events.onDragUpdate.add(spriteHandlerDragUpdate);
 			spriteCenterHandler[counter].events.onDragStop.add(spriteHandlerDragStop);
+			spriteCenterHandler[counter].events.onInputOver.add(onStaffLevelHandlerInputOver);
+			spriteCenterHandler[counter].events.onInputOut.add(onStaffLevelHandlerInputOut);
 
 			spriteStaffLevelGroup.add(spriteBar[counter]);
 			spriteStaffLevelGroup.add(spriteCenterHandler[counter]);
@@ -2598,18 +2742,28 @@
 
 		}
 
+		function onStaffLevelHandlerInputOver(handler, pointer) {
+			updateToopTip(handler)
+			toolTipText.visible = true;
+		}
+
+		function onStaffLevelHandlerInputOut(handler, pointer) {
+			toolTipText.visible = false;
+		}
 
 		function availHandlerDragStart(handler, pointer, x, y) {
 			let counter = handler.counterVal;
 			availHandlerStartYCoordinate = y;
 			availBarHeight = availBar[counter].height;
+			activeHandler = handler;
 		}
 
 		function availHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
 			let counter = handler.counterVal;
 			let handlerType = handler.handlerType;
 			availDragDist = availHandlerStartYCoordinate - handler.y;
-			//console.log("availDragDist", availDragDist);
+			// console.log("availDragDist", availDragDist);
+			// console.log("handler.y", handler.y);
 			if (!isNaN(availDragDist)) {
 				availBar[counter].height = availBarHeight + availDragDist;
 				availBar[counter].y = handler.y;
@@ -2647,7 +2801,7 @@
 
 				updateConflictArea(counter);
 			}
-
+			updateToopTip(handler)
 		}
 
 		function availHandlerDragStop(handler, pointer) {
@@ -2655,12 +2809,16 @@
 			repositionSpriteBasedOnYGranularity(handler);
 			availHandlerDragUpdate(handler); // calling function again to update line graphics, staff bar height after repositioning of handler 
 			emitStaffLevels(handler, counter, availBar, "Available Bar");
+			availHandlerStartYCoordinate = undefined;
+			activeHandler = undefined;
+
 		}
 
 		function minReqHandlerDragStart(handler, pointer, x, y) {
 			let counter = handler.counterVal;
 			minReqHandlerStartYCoordinate = y;
 			minRequiredBarHeight = minRequiredBar[counter].height;
+			activeHandler = handler;
 		}
 
 		function minReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
@@ -2706,6 +2864,7 @@
 
 				updateConflictArea(counter)
 			}
+			updateToopTip(handler)
 		}
 
 		function minReqHandlerDragStop(handler, pointer) {
@@ -2713,12 +2872,15 @@
 			repositionSpriteBasedOnYGranularity(handler);
 			minReqHandlerDragUpdate(handler); // calling function again to update line graphics, staff bar height after repositioning of handler 
 			emitStaffLevels(handler, counter, minRequiredBar, "Minimum Bar");
+			minReqHandlerStartYCoordinate = undefined;
+			activeHandler = undefined;
 		}
 
 		function maxReqHandlerDragStart(handler, pointer, x, y) {
 			let counter = handler.counterVal;
 			maxReqHandlerStartYCoordinate = y;
 			maxRequiredBarHeight = maxRequiredBar[counter].height;
+			activeHandler = handler;
 		}
 
 		function maxReqHandlerDragUpdate(handler, pointer, x, y, snapOnDrag, fromStart) {
@@ -2764,6 +2926,7 @@
 
 				updateConflictArea(counter)
 			}
+			updateToopTip(handler)
 		}
 
 		function maxReqHandlerDragStop(handler, pointer) {
@@ -2771,6 +2934,8 @@
 			repositionSpriteBasedOnYGranularity(handler);
 			maxReqHandlerDragUpdate(handler); // calling function again to update line graphics, staff bar height after repositioning of handler 
 			emitStaffLevels(handler, counter, maxRequiredBar, "Maximum bar");
+			maxReqHandlerStartYCoordinate = undefined;
+			activeHandler = undefined;
 		}
 
 		function mouseWheel(event) {
@@ -2783,6 +2948,39 @@
 			}
 		}
 
+		function createToolTip() {
+			toolTipText = game.add.text(0, 0, ' Text ', {
+				font: "20px open",
+				backgroundColor: "#5d00eb",
+				fill: "#ffffff"
+			});
+			toolTipText.anchor.setTo(0.5)
+			toolTipText.visible = false;
+		}
+
+		function updateToopTip(handler) {
+			updateToopTipPosition(handler);
+			updateToopTipText(handler);
+		}
+
+		function updateToopTipPosition(handler) {
+			let counter = handler.counterVal;
+			if (toolTipText) {
+				toolTipText.x = counter >= (minRequiredBar.length - 12) ? handler.x - 35 : handler.x + 35;
+				toolTipText.y = handler.y;
+			}
+		}
+
+		function updateToopTipText(handler) {
+			let barYIndex = getToolTipPositionFromYGranularity(handler);
+			if (barYIndex) {
+				let staffLevel = calculateStaffLevel(barYIndex);
+				toolTipText.text = ` ${staffLevel} `;
+			} else {
+				console.log("barYIndex Not Present")
+			}
+		}
+
 		function update() {
 			// if (precisionView) {
 			// 	if (cursors.up.isDown) {
@@ -2791,6 +2989,43 @@
 			// 		game.camera.y += cameraMovement;
 			// 	}
 			// }
+			//game.camera.setPosition(0,0)
+			if (goToBottom) {
+				if (game.camera.y < -100) {
+					goToBottom.visible = true;
+				} else {
+					goToBottom.visible = false;
+				}
+			}
+
+			// if (game.input.activePointer.isDown) {
+			// 	console.log("game.input.activePointer.positionDown.y, game.camera.y, combined", game.input.activePointer.positionDown
+			// 		.y, game.camera.y, (game.input.activePointer.positionDown.y + game.camera.y), game.camera.position)
+			// }
+			if (game.input.activePointer.isDown && precisionView && game.input.mouse.event.type === "mousemove" && activeHandler &&
+				(game.input.mouse.event.offsetY < 30 || game.input.mouse.event.offsetY > 1480)) {
+				let cameraMovement = 30;
+				if (game.input.mouse.event.offsetY < 30) {
+
+					//console.log("game.input.mouse.event.movementY", game.input.mouse);
+					game.camera.y -= cameraMovement;
+					activeHandler.y = (game.input.activePointer.positionDown.y + game.camera.y);
+				} else if (game.input.mouse.event.offsetY > 1480) {
+					game.camera.y += cameraMovement;
+					activeHandler.y = (game.input.activePointer.positionDown.y + game.camera.y);
+				}
+				//console.log(" game.input.activePointer.positionDown.x + game.camera.x.",  game.input.activePointer.positionDown.y + game.camera.y)
+				//console.log("game.input.mouse.event.type", game.input.mouse.event.type);
+				let handlerType = activeHandler.handlerType;
+				if (handlerType == "minReqBar") {
+					minReqHandlerDragUpdate(activeHandler)
+				} else if (handlerType == "maxReqBar") {
+					maxReqHandlerDragUpdate(activeHandler);
+				} else if (handlerType == "availBar") {
+					availHandlerDragUpdate(activeHandler)
+				}
+			}
+
 		}
 
 		function render() {
@@ -2803,14 +3038,15 @@
 			createYAxisText();
 
 			xAxis = new Phaser.Line(0, yAxisRef + 1, gameWidth, yAxisRef + 1);
-			yAxis = new Phaser.Line(xAxisRef, positiveBounds.y, xAxisRef, game.world.bottom);
+			//yAxis = new Phaser.Line(xAxisRef, positiveBounds.y, xAxisRef, game.world.bottom);
+			yAxis = new Phaser.Line(self.xAxisRef, -10000, self.xAxisRef, 4500);
 			var xAxisGraphics = game.add.graphics(0, 0);
-			xAxisGraphics.lineStyle(2, 0xb1b1b1);
+			xAxisGraphics.lineStyle(3, 0xb1b1b1);
 			xAxisGraphics.moveTo(xAxis.start.x, xAxis.start.y); // moving position of graphic if you draw mulitple lines
 			xAxisGraphics.lineTo(xAxis.end.x, xAxis.end.y);
 			xAxisGraphics.endFill();
 			var yAxisGraphics = game.add.graphics(0, 0);
-			yAxisGraphics.lineStyle(2, 0xb1b1b1);
+			yAxisGraphics.lineStyle(3, 0xb1b1b1);
 			yAxisGraphics.moveTo(yAxis.start.x, yAxis.start.y); // moving position of graphic if you draw mulitple lines
 			yAxisGraphics.lineTo(yAxis.end.x, yAxis.end.y);
 			yAxisGraphics.endFill();
@@ -3040,7 +3276,6 @@
 							y: maxReqBarY
 						},
 					]);
-					console.log(overStaffPolygon[counter]);
 					overStaffGraphic[counter] = game.add.graphics(0, 0);
 					overStaffGraphic[counter].beginFill(0xe3da7d);
 					overStaffGraphic[counter].drawPolygon(overStaffPolygon[counter].points);
@@ -3053,11 +3288,11 @@
 			}
 		}
 
-		function createButtons() {
-			downScaleText = game.add.text(game.world.right - 100, 50, ' - ',{
-							font: "40px open",
-							backgroundColor: "#bcbfc3" 
-						});
+		function createScaleButtons() {
+			downScaleText = game.add.text(game.world.right - 85, 50, ' - ', {
+				font: "40px open",
+				backgroundColor: "#bcbfc3"
+			});
 			downScaleText.type = "DOWN";
 			downScaleText.inputEnabled = true;
 			downScaleText.events.onInputDown.add(actionOnClick, this);
@@ -3065,28 +3300,42 @@
 			//downScaleText.scale.setTo(3)
 
 			upScaleText = game.add.text(game.world.right - 170, 50, ' + ', {
-							font: "40px open",
-							backgroundColor: "#bcbfc3" 
-						});
+				font: "40px open",
+				backgroundColor: "#bcbfc3"
+			});
 			upScaleText.type = "UP";
 			upScaleText.inputEnabled = true;
 			upScaleText.events.onInputDown.add(actionOnClick, this);
 			upScaleText.fixedToCamera = true;
+
+			goToBottom = game.add.text(game.world.right - 170, gameHeight - 100, ' Down ', {
+				font: "40px open",
+				backgroundColor: "#bcbfc3"
+			});
+			goToBottom.inputEnabled = true;
+			goToBottom.visible = false;
+			goToBottom.events.onInputDown.add(resetCamera, this);
+			goToBottom.fixedToCamera = true;
 			//upScaleText.scale.setTo(3)
 		}
 
-		function actionOnClick(button) {
+		function actionOnClick(textSprite) {
 
-			console.log('button', button);
-			let buttonType = button.type;
-			if (buttonType == "UP" && (staffLevelsScale + scaleAlterVal < maxStaffLevelsScale)) {
+			console.log('textSprite', textSprite);
+			let textType = textSprite.type;
+			if (textType == "UP" && (staffLevelsScale + scaleAlterVal <= maxStaffLevelsScale)) {
 				staffLevelsScale += scaleAlterVal;
 
-			} else if (buttonType == "DOWN" && (staffLevelsScale - scaleAlterVal > scaleAlterVal)) {
+			} else if (textType == "DOWN" && (staffLevelsScale - scaleAlterVal > 0)) {
 				staffLevelsScale -= scaleAlterVal;
 			}
 
 			game.state.start(game.state.current, true, false);
+		}
+
+		function resetCamera(textSprite) {
+			console.log("game.camera.y", game.camera.y);
+			game.camera.y += 5000;
 		}
 
 		$('.onTopSelect').on('change', function () {
@@ -3101,6 +3350,7 @@
 						availCenterHandler[i].visible = true;
 						//sickCenterHandler[i].visible = false;
 					}
+					toolTipText.bringToTop();
 					break;
 
 				case "minReq":
@@ -3111,6 +3361,7 @@
 						availCenterHandler[i].visible = false;
 						//sickCenterHandler[i].visible = false;
 					}
+					toolTipText.bringToTop();
 					break;
 
 				case "maxReq":
@@ -3121,6 +3372,7 @@
 						availCenterHandler[i].visible = false;
 						//sickCenterHandler[i].visible = false;
 					}
+					toolTipText.bringToTop();
 					break;
 
 				case "sick":
@@ -3130,7 +3382,6 @@
 						maxReqCenterHandler[i].visible = false;
 						availCenterHandler[i].visible = false;
 						//sickCenterHandler[i].visible = true;
-
 					}
 					break;
 
@@ -3146,6 +3397,7 @@
 						availCenterHandler[i].visible = false;
 						//sickCenterHandler[i].visible = false;
 					}
+					toolTipText.bringToTop();
 			}
 		});
 
@@ -3154,6 +3406,7 @@
 				precisionView = false;
 				gameHeight = 550;
 			} else {
+				staffLevelsScale = maxStaffLevelsScale = Math.ceil(maxStaffNumber / 10);
 				precisionView = true;
 				gameHeight = 1500;
 			}
